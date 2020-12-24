@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from itertools import product, combinations
 from time import time
 
-input = '..\data\day_100k.csv'
+input = '..\data\day_1M.csv'
 print(f'Reading \'{input}\' ... ', end='', flush=True)
 selected_columns = range(14, 14+26)
 t = -time()

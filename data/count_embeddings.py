@@ -8,34 +8,9 @@ import sys
 sys.path.append('..')
 from bigdatatools import ChunkStreaming
 
-def chunked_vcounts(**kwargs):
-    chunk = chunk_generator(**kwargs)
-    data = next(chunk)
-    vcs0 = [data[col].value_counts() for col in data.columns]
-
-    data = next(chunk, None)
-    while (data is not None):
-        vcs1 = [data[col].value_counts() for col in data.columns]
-        vcs0 = [
-            pd.concat([first, second]).groupby(level=0).sum()
-            for first,second in zip(vcs0, vcs1)
-        ]
-        data = next(chunk, None)
-    
-    return vcs0
-
-def chunk_generator(file_names, keep_nan, **kwargs):
-    for file in file_names:
-        reader = pd.read_csv(file, **kwargs)
-        for chunk in reader:
-            if keep_nan:
-                yield chunk.replace(np.nan, '0')
-            else:
-                yield chunk
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
-        description='Cardinality of categorical features\' domain\n')
+        description='Cardinality of categorical features\' domain')
     parser.add_argument('--files','-f', type=str, default=None, required=True)
     parser.add_argument('--chunk-size','-c', type=int, default=int(1e6))
     parser.add_argument('--keep-nan','-k', action='store_true', default=False)
@@ -54,15 +29,16 @@ if __name__ == '__main__':
 
     cs = ChunkStreaming(args.files, args.keep_nan, **kwargs)
     cs.column_mapper = pd.Series.value_counts
+    cs.column_feeder = selected_columns
     cs.column_reducer = lambda x,y: pd.concat([x, y]).groupby(level=0).sum()
     
     t = time()
     vcs = cs.process_columns()
     t = time() - t
 
-    cardinalities = [(i,counts.size) for i,counts in zip(selected_columns,vcs)]
+    # creating tuples to be plotted
+    cardinalities = [(i,vcounts.size) for i,vcounts in vcs]
     print(f'{t} sec')
-    
     print(*cardinalities, sep='\n')
     print('\nSorted:')
     cardinalities.sort(key=lambda x: x[1], reverse=True)
@@ -75,6 +51,7 @@ if __name__ == '__main__':
     plt.xlabel('Feature index')
     plt.ylabel('Number of unique IDs')
     plt.title("Cardinality of the features' domain")
+    plt.tight_layout()
     plt.plot()
     plt.show()
 
