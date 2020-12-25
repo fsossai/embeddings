@@ -7,20 +7,24 @@ import time
 import sys
 import argparse
 
-def interarrival_times(data, feature_index, order_stat):
-    # selecting the order_stat-most frequent ID
-    key = list(data[feature_index]
-            .replace(np.nan,0)
-            .value_counts()
-            .to_dict())[order_stat]
+def interarrival_times_of(key, data, feature_index):
     occurrences = np.where(data[feature_index] == key)
 
     # calculating interarrival times
     a,b = iter(occurrences[0]), iter(occurrences[0])
     next(b, None)
     inter = list(map(lambda t1,t2: t2-t1, a, b))
+    return len(occurrences[0]), inter
 
-    return key, len(occurrences[0]), inter
+def interarrival_times(data, feature_index, order_stat):
+    # selecting the order_stat-most frequent ID
+    key = list(data[feature_index]
+            .replace(np.nan,0)
+            .value_counts()
+            .to_dict())[order_stat]
+    l,inter = interarrival_times_of(key, data, feature_index)
+    return key,l,inter
+    
 
 def group_interarrivals(inter):
     inter.sort()
