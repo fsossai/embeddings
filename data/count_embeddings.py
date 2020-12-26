@@ -13,7 +13,7 @@ if __name__ == '__main__':
         description='Cardinality of categorical features\' domain')
     parser.add_argument('--files','-f', type=str, default=None, required=True)
     parser.add_argument('--chunk-size','-c', type=int, default=int(1e6))
-    parser.add_argument('--keep-nan','-k', action='store_true', default=False)
+    parser.add_argument('--drop-nan','-d', action='store_true', default=False)
     parser.add_argument('--gzip','-z', action='store_true', default=False)
     args = parser.parse_args()
 
@@ -27,7 +27,7 @@ if __name__ == '__main__':
         'compression' : 'gzip' if args.gzip else None
     }
 
-    cs = ChunkStreaming(args.files, args.keep_nan, **kwargs)
+    cs = ChunkStreaming(args.files, args.drop_nan, **kwargs)
     cs.column_mapper = pd.Series.value_counts
     cs.column_feeder = selected_columns
     cs.column_reducer = lambda x,y: pd.concat([x, y]).groupby(level=0).sum()

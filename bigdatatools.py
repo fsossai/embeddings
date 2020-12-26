@@ -5,7 +5,7 @@ import numpy as np
 from time import time
 
 class ChunkStreaming:
-    def __init__(self, files, drop_nan, log=True, **pandas_args):
+    def __init__(self, files, drop_nan, log=True, nchunks=np.inf, **pandas_args):
         if '*' in files:
             from glob import glob
             self.files = glob(files)
@@ -16,10 +16,13 @@ class ChunkStreaming:
         self.column_reducer = None
         self.chunk_mapper = None
         self.chunk_reducer = None
+        self.index_transformer = lambda x: x
         self.drop_nan = drop_nan
         self.pandas_args = pandas_args
         self.processed_rows = 0
         self.log = log
+        self.nchunks = nchunks
+        self.__chunk_counter = 0
 
     def __check_func(self, mapper, reducer):
         if mapper is None:
@@ -29,16 +32,29 @@ class ChunkStreaming:
 
     def __chunk_generator(self):
         for file in self.files:
-            if self.log:
-                print(f'\nCurrent file\t: \'{file}\'')
             reader = pd.read_csv(file, **self.pandas_args)
             for chunk in reader:
+                if self.__chunk_counter >= self.nchunks:
+                    return
+                if self.log:
+                    print(
+                            f'File\t: \'{file}\',\t' +
+                            f'chunk number\t: {self.__chunk_counter+1}',
+                            end='', flush=True
+                    )
+                    if self.nchunks is np.inf:
+                        print()
+                    else:
+                        print(f'/{self.nchunks}')
                 if self.drop_nan:
                     chunk.dropna(inplace=True)
                 else:
                     chunk.replace(np.nan, '0', inplace=True)
+                self.__chunk_counter += 1
                 yield chunk
                 self.processed_rows += len(chunk)
+                if self.log:
+                    print()
 
     def foreach_column(self, mapper, feeder, reducer):
         self.processed_rows = 0
@@ -54,16 +70,14 @@ class ChunkStreaming:
                 if self.log:
                     print(f'\r mapping {work} ... ', end='', flush=True)
                 if type(work) in [int, list]:
-                    yield ( work, mapper(d[work]) )
+                    yield ( self.index_transformer(work), mapper(d[work]) )
                 elif type(work) is tuple:
-                    yield ( work, mapper(d[list(work)]) )
+                    yield ( self.index_transformer(work), mapper(d[list(work)]) )
                 else:
                     raise Exception('feeder type not supported')
 
-        if self.log:
-            print()
-
         mapped0 = list(map_gen(data))
+        if self.log: print()
 
         data = next(chunk, None)
         while (data is not None):
