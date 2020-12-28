@@ -3,60 +3,101 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from itertools import product, combinations
+from itertools import combinations
 from time import time
-
-input = '..\data\day_1M.csv'
-print(f'Reading \'{input}\' ... ', end='', flush=True)
-selected_columns = range(14, 14+26)
-t = -time()
-data = pd.read_csv(input, sep='\t', header=None, usecols=selected_columns)
-t += time()
-print(f'{t:.5} sec')
-
-data = data.replace(np.nan, '0')
-N = len(data)
-
-# for each pair of sparse feature indexes
-hcs = []
-print('Counting unique values ... ', end='', flush=True)
-t = -time()
-counts = [data[i].value_counts().size for i in selected_columns]
-t += time()
-print(f'{t:.5} sec')
-
-# processing features 
-A = np.empty( (len(selected_columns), len(selected_columns)) )
-A[:] = np.nan
-offset = selected_columns[0]
-t = -time()
-for i,j in combinations(selected_columns, r=2):
-    if i == j:
-        continue
-    print(f'\rProcessing alpha({i},{j}) ... ', end='', flush=True)
-    L = data[[i,j]].value_counts().size
-    m = min(counts[i-offset] * counts[j-offset], N)
-    M = max(counts[i-offset], counts[j-offset])
-    #M = counts[j-offset]
-    corr = (m-L) / (m-M)
-    A[i-offset,j-offset] = corr
-t += time()
-print('\r',*([' ']*80), sep='', end='') # clearing 80 chars of the last line
-print(f'\rDone in {t:.8} sec')
-
-# saving to file
-outname = 'alpha_' + str(int(time()))
-np.save(outname, A)
-
-# plotting image
-plt.imshow(A)
-plt.xticks(range(len(selected_columns)), selected_columns)
-plt.yticks(range(len(selected_columns)), selected_columns)
-plt.colorbar()
-plt.grid(True)
-plt.tight_layout()
-plt.savefig(outname + '.png')
-plt.show()
+import argparse
+import sys
+sys.path.append('..')
+import bigdatatools
+from bigdatatools import ChunkStreaming
 
 
+def alpha_correlation(cardinalities, N, t):
+    if type(cardinalities) is not np.ndarray:
+        cardinalities = np.array(cardinalities)
+    M = min(cardinalities.prod(), N)
+    m = cardinalities.max()
+    return (M - t) / (M - m)
 
+
+if __name__ == '__main__':
+    parser = bigdatatools.default_parser()
+    parser.description = 'Computing alpha correlation of pairs of categorical features'
+    parser.add_argument('--files', '-f', type=str, default=None, required=True)
+    parser.add_argument('--order', '-o', type=int, default=2)
+    args = parser.parse_args()
+
+    if args.selected_columns is not None:
+        selected_columns = bigdatatools.get_range_list(args.selected_columns)
+    else:
+        selected_columns = None
+
+    kwargs = {
+        'sep': '\t',
+        'header': None,
+        'usecols': selected_columns,
+        'chunksize': args.chunk_size,
+        'compression': 'gzip' if args.gzip else None
+    }
+
+
+    def reducer(x, y):
+        return pd.concat([x, y]).groupby(
+            level=list(range(args.order))
+        ).sum()
+
+
+    t = time()
+    # counting unique r-tuples of IDs in each r-tuple of columns
+    cs = ChunkStreaming(args.files, args.drop_nan, **kwargs)
+    cs.column_mapper = pd.DataFrame.value_counts
+    cs.column_feeder = list(combinations(selected_columns, r=args.order))
+    cs.column_reducer = reducer
+    vcs = cs.process_columns()
+
+    # extract feature domain cardinalities
+    all_cardinalities = {}
+    for c in selected_columns:
+        match_finder = (
+            next((
+                (vcounts, i)
+                for i in range(args.order)
+                if index[i] == c
+            ), None)
+            for index, vcounts in vcs
+        )
+        vcounts, i = next(
+            match for match in match_finder
+            if match is not None
+        )
+        all_cardinalities[c] = vcounts.index.get_level_values(i).nunique()
+
+    # compute all correlations in a numpy matrix
+    nsel = len(selected_columns)
+    A = np.empty(tuple([nsel] * args.order))
+    A[:] = np.nan
+    offset = min(selected_columns)
+    for index, vcounts in vcs:
+        matrix_index = tuple([i - offset for i in index])
+        A[matrix_index] = alpha_correlation(
+            [all_cardinalities[i] for i in index],
+            cs.processed_rows,
+            vcounts.size
+        )
+
+    t = time() - t
+    print(f'Elapsed time\t: {t:.5} sec')
+
+    # saving to file
+    outname = 'alpha_' + str(int(time()))
+    np.save(outname, A)
+
+    # plotting image
+    plt.imshow(A)
+    plt.xticks(range(len(selected_columns)), selected_columns)
+    plt.yticks(range(len(selected_columns)), selected_columns)
+    plt.colorbar()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig(outname + '.png')
+    plt.show()
