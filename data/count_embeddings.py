@@ -19,7 +19,7 @@ if __name__ == '__main__':
 
     selected_columns = range(14, 14+26)
     
-    kwargs = {
+    pandas_kwargs = {
         'sep' : '\t',
         'header' : None,
         'usecols' : selected_columns,
@@ -27,7 +27,7 @@ if __name__ == '__main__':
         'compression' : 'gzip' if args.gzip else None
     }
 
-    cs = ChunkStreaming(args.files, args.drop_nan, **kwargs)
+    cs = ChunkStreaming(args.files, args.drop_nan, **pandas_kwargs)
     cs.column_mapper = pd.Series.value_counts
     cs.column_feeder = selected_columns
     cs.column_reducer = lambda x,y: pd.concat([x, y]).groupby(level=0).sum()

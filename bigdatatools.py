@@ -5,7 +5,7 @@ import numpy as np
 from time import time
 
 class ChunkStreaming:
-    def __init__(self, files, drop_nan, log=True, nchunks=np.inf, **pandas_args):
+    def __init__(self, files, drop_nan=False, log=True, nchunks=np.inf, **pandas_args):
         if '*' in files:
             from glob import glob
             self.files = glob(files)
@@ -30,9 +30,11 @@ class ChunkStreaming:
         if reducer is None:
             raise Exception('empty reducer')
 
-    def __chunk_generator(self):
+    def chunk_gen(self, pandas_args=None):
+        if pandas_args is None:
+            pandas_args = self.pandas_args
         for file in self.files:
-            reader = pd.read_csv(file, **self.pandas_args)
+            reader = pd.read_csv(file, **pandas_args)
             for chunk in reader:
                 if self.__chunk_counter >= self.nchunks:
                     return
@@ -59,7 +61,7 @@ class ChunkStreaming:
     def foreach_column(self, mapper, feeder, reducer):
         self.processed_rows = 0
         self.__check_func(mapper, reducer)
-        chunk = self.__chunk_generator()
+        chunk = self.chunk_gen()
         data = next(chunk)
 
         if feeder is None:
@@ -100,7 +102,7 @@ class ChunkStreaming:
         self.processed_rows = 0
         self.__check_func(mapper, reducer)
 
-        chunk = self.__chunk_generator()
+        chunk = self.chunk_gen()
         data = next(chunk)
 
         mapped0 = mapper(data)
