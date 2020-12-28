@@ -1,4 +1,4 @@
-# Calulates, plots and saves the alpha correlation
+# Calculates, plots and saves the alpha correlation
 
 import numpy as np
 import pandas as pd

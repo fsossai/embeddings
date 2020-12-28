@@ -54,7 +54,7 @@ def available_strategies():
     return [
         'random',
         'greedy',
-        'roundrobin1'
+        'roundrobin1',
         'roundrobin2'
     ]
 
@@ -62,6 +62,13 @@ def available_strategies():
 def available_allocations():
     return [
         'fit'
+    ]
+
+
+def random_strategy_fanout(ndevices, features):
+    return [
+        n * (1 - np.power(1 - 1 / n, features))
+        for n in ndevices
     ]
 
 
