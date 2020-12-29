@@ -77,6 +77,7 @@ class Simulation:
         self.selected_columns = None
         self.tables = None
         self.data_available = False
+        self.processed_queries = 0
 
     def load_tables_from_dataframe(self, inputfiles, selected_columns=None, **pandas_kwargs):
         # processing a pandas.DataFrame with ChunkStreaming
@@ -114,7 +115,9 @@ class Simulation:
             ndevices = [ndevices]
 
         mems = dict()
+        print(f'Sharding\t: ', end='', flush=True)
         for dev in ndevices:
+            print(f'{dev} ', end='', flush=True)
             m = MemorySystem(dev)
             m.load_embtables(self.tables)
             m.shard_embeddings(
@@ -123,22 +126,22 @@ class Simulation:
             )
             m.set_active(0)
             mems[dev] = m
+        print()
 
         for i, chunk in enumerate(reader):
             print(f'Devices\t: ', end='', flush=True)
             for dev in ndevices:
                 print(f'{dev} ', end='', flush=True)
                 mems[dev].lookups(index=0, queries=chunk)
+            self.processed_queries += len(chunk)
         print()
 
-        results = dict()
-        for dev in ndevices:
-            res = {
-                'avgfanout': np.mean(mems[dev].fanout),
-                'memload': mems[dev].requests_per_dev
-            }
-            results[dev] = res
-        return results
+        avgfanout = [(dev, np.mean(mems[dev].fanout)) for dev in ndevices]
+        memload = [(dev, mems[dev].requests_per_dev) for dev in ndevices]
+        return dict({
+            'avgfanout': avgfanout,
+            'memload': memload
+        })
 
 
 class MemorySystem:
@@ -259,10 +262,10 @@ class MemorySystem:
 
     def tables_rm_gen(self):
         tuple_table = (
-            (
+            [
                 (t, i)
                 for i in range(self.tables[t].size)
-            )
+            ]
             for t in self.tables
         )
         for row in zip_discard(*tuple_table):
