@@ -46,7 +46,7 @@ def default_parser():
     parser.add_argument('--chunk-size', '-c', type=int, default=int(1e6))
     parser.add_argument('--n-chunks', '-n', type=int, default=None)
     parser.add_argument('--gzip', '-z', action='store_true', default=False)
-    parser.add_argument('--selected-columns', '-S', type=range_list, default=None)
+    parser.add_argument('--column-selection', '-S', type=range_list, default=None)
     return parser
 
 

@@ -16,22 +16,22 @@ if __name__ == '__main__':
     parser.add_argument('--embedding-tables', '-t', type=str, required=True)
     parser.add_argument('--strategies', '-s',
                         type=simtools.comma_separated_strategies, required=True)
-    parser.add_argument('--ndevices', '-d', type=bigdatatools.range_list, required=True)
+    parser.add_argument('--n-devices', '-d', type=bigdatatools.range_list, required=True)
     parser.add_argument('--output-dir', '-D', type=str, default=None)
     args = parser.parse_args()
 
     strategies = args.strategies.split(',')
-    ndevices = bigdatatools.get_range_list(args.ndevices)
+    ndevices = bigdatatools.get_range_list(args.n_devices)
 
-    if args.selected_columns is not None:
-        selected_columns = bigdatatools.get_range_list(args.selected_columns)
+    if args.column_selection is not None:
+        column_selection = bigdatatools.get_range_list(args.column_selection)
     else:
-        selected_columns = None
+        column_selection = None
 
     pandas_kwargs = {
         'sep': '\t',
         'header': None,
-        'usecols': selected_columns,
+        'usecols': column_selection,
         'chunksize': args.chunk_size,
         'compression': 'gzip' if args.gzip else None
     }
@@ -117,7 +117,7 @@ if __name__ == '__main__':
         axs[i].set(ylabel='', title=f'{dev} memory devices')
 
     # saving memload images to file
-    axs[0].set_ylabel('Memory Load (queries per device')
+    axs[0].set_ylabel('Memory Load (queries per device)')
     plt.tight_layout()
     fig.savefig(f'{output_dir}\\sim{timestamp}_memload.png')
     fig.savefig(f'{output_dir}\\sim{timestamp}_memload.svg')
@@ -127,7 +127,7 @@ if __name__ == '__main__':
     fig.suptitle(f'Fanout Simulation, {total_queries} '
                  f'queries from \'{args.queries_file}\'')
     # plotting theoretical random fanout
-    random_fanout = simtools.random_strategy_fanout(ndevices, len(selected_columns))
+    random_fanout = simtools.random_strategy_fanout(ndevices, len(column_selection))
     ax.plot(ndevices, random_fanout, '.--', label='random (theoretical)')
     # plotting fanout of the other strategies
     for strategy in strategies:
