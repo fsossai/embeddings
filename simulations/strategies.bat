@@ -1,8 +1,7 @@
 @echo off
 
-set results_dir = "results"
-if not exist %results_dir% (
-    mkdir %results_dir%
+if not exist results (
+    mkdir results
 )
 
 python strategies.py                                            ^
@@ -14,4 +13,4 @@ python strategies.py                                            ^
  --gzip                                                         ^
  --column-selection         14-39                               ^
  --embedding-tables         "tables\day_23_1M.bin"              ^
- --output-dir               %results_dir%
+ --output-dir               "results"
