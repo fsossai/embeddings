@@ -50,7 +50,14 @@ if __name__ == '__main__':
         print('ERROR: Feature must be in range [14,39]')
         sys.exit(-1)
 
-    data = pd.read_csv('..\\data\\day_1M.csv', sep='\t', header=None)
+    reader = pd.read_csv(
+        '..\\data\\day_23.gz',
+        sep='\t',
+        header=None,
+        compression='gzip',
+        chunksize=int(1e6)
+    )
+    data = next(reader)
 
     key, count, inter = interarrival_times(data, args.feature_index, args.top - 1)
     print(f'key: {key}')

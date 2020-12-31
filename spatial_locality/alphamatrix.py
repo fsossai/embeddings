@@ -5,9 +5,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from itertools import combinations
 from time import time
-import argparse
-import sys
-sys.path.append('..')
+import sys; sys.path.append('..')
 import bigdatatools
 from bigdatatools import ChunkStreaming
 
@@ -27,15 +25,11 @@ if __name__ == '__main__':
     parser.add_argument('--order', '-o', type=int, default=2)
     args = parser.parse_args()
 
-    if args.selected_columns is not None:
-        selected_columns = bigdatatools.get_range_list(args.selected_columns)
-    else:
-        selected_columns = None
-
+    column_selection = bigdatatools.get_range_list(args.column_selection)
     kwargs = {
         'sep': '\t',
         'header': None,
-        'usecols': selected_columns,
+        'usecols': column_selection,
         'chunksize': args.chunk_size,
         'compression': 'gzip' if args.gzip else None
     }
@@ -49,15 +43,15 @@ if __name__ == '__main__':
 
     t = time()
     # counting unique r-tuples of IDs in each r-tuple of columns
-    cs = ChunkStreaming(args.files, args.drop_nan, **kwargs)
+    cs = ChunkStreaming(args.files, nchunks=args.n_chunks, **kwargs)
     cs.column_mapper = pd.DataFrame.value_counts
-    cs.column_feeder = list(combinations(selected_columns, r=args.order))
+    cs.column_feeder = list(combinations(column_selection, r=args.order))
     cs.column_reducer = reducer
     vcs = cs.process_columns()
 
     # extract feature domain cardinalities
     all_cardinalities = {}
-    for c in selected_columns:
+    for c in column_selection:
         match_finder = (
             next((
                 (vcounts, i)
@@ -73,10 +67,10 @@ if __name__ == '__main__':
         all_cardinalities[c] = vcounts.index.get_level_values(i).nunique()
 
     # compute all correlations in a numpy matrix
-    nsel = len(selected_columns)
+    nsel = len(column_selection)
     A = np.empty(tuple([nsel] * args.order))
     A[:] = np.nan
-    offset = min(selected_columns)
+    offset = min(column_selection)
     for index, vcounts in vcs:
         matrix_index = tuple([i - offset for i in index])
         A[matrix_index] = alpha_correlation(
@@ -94,8 +88,8 @@ if __name__ == '__main__':
 
     # plotting image
     plt.imshow(A)
-    plt.xticks(range(len(selected_columns)), selected_columns)
-    plt.yticks(range(len(selected_columns)), selected_columns)
+    plt.xticks(range(len(column_selection)), column_selection)
+    plt.yticks(range(len(column_selection)), column_selection)
     plt.colorbar()
     plt.grid(True)
     plt.tight_layout()

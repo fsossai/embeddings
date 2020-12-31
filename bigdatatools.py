@@ -30,6 +30,8 @@ def range_list(value):
 
 # from '1,3-6,9,11' to [1,3,6,7,8,9,11]
 def get_range_list(value):
+    if value is None:
+        return None
     v = []
     comma_separated = value.split(',')
     for ds in comma_separated:
@@ -80,9 +82,9 @@ class ChunkStreaming:
                     return
                 if self.log:
                     print(
-                            f'File\t: \'{file}\',\t' +
-                            f'chunk number\t: {self.__chunk_counter+1}',
-                            end='', flush=True
+                        f'File\t: \'{file}\',\t' +
+                        f'chunk number\t: {self.__chunk_counter + 1}',
+                        end='', flush=True
                     )
                     if self.nchunks is np.inf:
                         print()
@@ -128,16 +130,16 @@ class ChunkStreaming:
             if self.log:
                 print('reducing ... ', end='', flush=True)
             mapped0 = [
-                ( i, reducer(m0, m1) )
-                for (i,m0),(_,m1) in zip(mapped0, mapped1)
+                (i, reducer(m0, m1))
+                for (i, m0), (_, m1) in zip(mapped0, mapped1)
             ]
             t = time() - t
             if self.log:
                 print(f'{t:.5} sec')
             data = next(chunk, None)
-        
+
         return list(mapped0)
-    
+
     def foreach_chunk(self, mapper, reducer):
         self.processed_rows = 0
         check_functors(mapper, reducer)
@@ -148,14 +150,14 @@ class ChunkStreaming:
         mapped0 = mapper(data)
 
         data = next(chunk, None)
-        while (data is not None):
+        while data is not None:
             mapped1 = mapper(data)
             mapped0 = [
                 reducer(m0, m1)
-                for m0,m1 in zip(mapped0, mapped1)
+                for m0, m1 in zip(mapped0, mapped1)
             ]
             data = next(chunk, None)
-        
+
         return list(mapped0)
 
     def process_columns(self):
@@ -164,8 +166,6 @@ class ChunkStreaming:
             self.column_feeder,
             self.column_reducer
         )
-        
+
     def process_chunks(self):
         return self.foreach_chunk(self.chunk_mapper, self.chunk_reducer)
-
-    

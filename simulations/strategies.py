@@ -1,11 +1,15 @@
-import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn
-from time import time
 import pickle
+import sys; sys.path.append('..')
+from time import time
+from typing import Dict, Any, Union
+
+import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn
+from pandas import DataFrame
+
 import simtools
-import sys
-sys.path.append('..')
+
 import bigdatatools
 from bigdatatools import ChunkStreaming
 
@@ -23,11 +27,7 @@ if __name__ == '__main__':
     strategies = args.strategies.split(',')
     ndevices = bigdatatools.get_range_list(args.n_devices)
 
-    if args.column_selection is not None:
-        column_selection = bigdatatools.get_range_list(args.column_selection)
-    else:
-        column_selection = None
-
+    column_selection = bigdatatools.get_range_list(args.column_selection)
     pandas_kwargs = {
         'sep': '\t',
         'header': None,
@@ -43,7 +43,6 @@ if __name__ == '__main__':
         memload[dev] = pd.DataFrame({
             'Device': [f'M{i}' for i in range(dev)]
         })
-
 
     avgfanout = dict()
     memload = dict()
@@ -61,13 +60,13 @@ if __name__ == '__main__':
         sim.reload_embtables(args.embedding_tables)
         res = sim.run(reader, strategy, ndevices)
 
-        #processing results
+        # processing results
         total_queries = max(total_queries, sim.processed_queries)
         avgfanout[strategy] = res['avgfanout']
         memload[strategy] = res['memload']
 
     # creating device-centered DataFrames
-    memload_dfs = dict()
+    memload_dfs: Dict[int, Union[DataFrame, Any]] = dict()
     for dev in ndevices:
         memload_dfs[dev] = pd.DataFrame({
             'Device': [f'M{i}' for i in range(dev)]
@@ -115,6 +114,9 @@ if __name__ == '__main__':
             ax=axs[i]
         )
         axs[i].set(ylabel='', title=f'{dev} memory devices')
+
+    total_time = time() - total_time
+    print(f'Elapsed time\t: {total_time:.5} sec')
 
     # saving memload images to file
     axs[0].set_ylabel('Memory Load (queries per device)')

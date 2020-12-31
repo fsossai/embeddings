@@ -1,13 +1,10 @@
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 from time import time
 import argparse
 from itertools import zip_longest
 import pickle
-import sys
-
-sys.path.append('..')
+import sys; sys.path.append('..')
 from bigdatatools import ChunkStreaming
 
 

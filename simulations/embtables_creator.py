@@ -1,7 +1,6 @@
 from time import time
 import simtools
-import sys
-sys.path.append('..')
+import sys; sys.path.append('..')
 import bigdatatools
 
 parser = bigdatatools.default_parser()
@@ -11,11 +10,7 @@ parser.add_argument('--files', '-f', type=str, required=True)
 parser.add_argument('--output', '-o', type=str, default=None)
 args = parser.parse_args()
 
-if args.column_selection is not None:
-    column_selection = bigdatatools.get_range_list(args.column_selection)
-else:
-    column_selection = None
-
+column_selection = bigdatatools.get_range_list(args.column_selection)
 pandas_kwargs = {
     'sep': '\t',
     'header': None,
