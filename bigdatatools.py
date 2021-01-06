@@ -65,18 +65,24 @@ class ChunkStreaming:
                  log=True,
                  nchunks=np.inf,
                  parallel=True,
+                 column_mapper=None,
+                 column_feeder=None,
+                 column_reducer=None,
+                 chunk_mapper=None,
+                 chunk_reducer=None,
+                 index_transformer=None,
                  **pandas_args):
         if '*' in files:
             from glob import glob
             self.files = glob(files)
         else:
             self.files = [files]
-        self.column_mapper = None
-        self.column_feeder = None
-        self.column_reducer = None
-        self.chunk_mapper = None
-        self.chunk_reducer = None
-        self.index_transformer = None
+        self.column_mapper = column_mapper
+        self.column_feeder = column_feeder
+        self.column_reducer = column_reducer
+        self.chunk_mapper = chunk_mapper
+        self.chunk_reducer = chunk_reducer
+        self.index_transformer = index_transformer or (lambda x: x)
         self.drop_nan = drop_nan
         self.pandas_args = pandas_args
         self.processed_rows = 0
@@ -86,6 +92,8 @@ class ChunkStreaming:
         self.parallel = parallel
         self.executors = cpu_count(logical=False) if parallel else 1
         self.latest_columns = None
+        if 'chunksize' not in pandas_args:
+            raise Exception('ChunkStreaming requires \'chunksize\' to be set')
 
     def chunk_gen(self, pandas_args=None):
         if pandas_args is None:
@@ -114,15 +122,10 @@ class ChunkStreaming:
                 self.log_print('')
 
     def __mapper_function(self, pair):
-        index_transformer = self.index_transformer or (lambda x: x)
         work, data = pair
-        if type(work) in [int, list]:
-            return index_transformer(work), self.column_mapper(data[work])
-        elif type(work) is tuple:
-            return index_transformer(work), self.column_mapper(data[list(work)])
-        else:
-            raise Exception('feeder type not supported')
-
+        if type(work) is tuple:
+            work = list(work)
+        return self.index_transformer(work), self.column_mapper(data[work])
 
     def __reducer_function(self, pairs):
         (work0, data0), (work1, data1) = pairs
@@ -137,10 +140,7 @@ class ChunkStreaming:
         data = next(chunks)
         feeder = self.column_feeder or data.columns
         self.latest_columns = data.columns
-        chops = len(feeder)
-        self.executors = 4 #D
-        #chops = len(feeder) // self.executors
-        chops = 5
+        chops = len(feeder) // self.executors
 
         def work_gen():
             for work in feeder:
