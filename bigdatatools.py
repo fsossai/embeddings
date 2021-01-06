@@ -4,6 +4,8 @@ import pandas as pd
 import numpy as np
 import argparse
 from time import time
+from multiprocessing.pool import ThreadPool
+from psutil import cpu_count
 
 
 def check_functors(mapper, reducer):
@@ -11,6 +13,10 @@ def check_functors(mapper, reducer):
         raise Exception('empty mapper')
     if reducer is None:
         raise Exception('empty reducer')
+
+
+def default_index_transformer(x):
+    return x
 
 
 def range_list(value):
@@ -53,7 +59,13 @@ def default_parser():
 
 
 class ChunkStreaming:
-    def __init__(self, files, drop_nan=False, log=True, nchunks=np.inf, **pandas_args):
+    def __init__(self,
+                 files,
+                 drop_nan=False,
+                 log=True,
+                 nchunks=np.inf,
+                 parallel=True,
+                 **pandas_args):
         if '*' in files:
             from glob import glob
             self.files = glob(files)
@@ -64,13 +76,16 @@ class ChunkStreaming:
         self.column_reducer = None
         self.chunk_mapper = None
         self.chunk_reducer = None
-        self.index_transformer = lambda x: x
+        self.index_transformer = None
         self.drop_nan = drop_nan
         self.pandas_args = pandas_args
         self.processed_rows = 0
         self.log = log
         self.nchunks = nchunks
         self.__chunk_counter = 0
+        self.parallel = parallel
+        self.executors = cpu_count(logical=False) if parallel else 1
+        self.latest_columns = None
 
     def chunk_gen(self, pandas_args=None):
         if pandas_args is None:
@@ -80,16 +95,15 @@ class ChunkStreaming:
             for chunk in reader:
                 if self.__chunk_counter >= self.nchunks:
                     return
-                if self.log:
-                    print(
-                        f'File\t: \'{file}\',\t' +
-                        f'chunk number\t: {self.__chunk_counter + 1}',
-                        end='', flush=True
-                    )
-                    if self.nchunks is np.inf:
-                        print()
-                    else:
-                        print(f'/{self.nchunks}')
+                self.log_print(
+                    f'File\t: \'{file}\',\t' +
+                    f'chunk number\t: {self.__chunk_counter + 1}',
+                    end='', flush=True
+                )
+                self.log_print(
+                    f'/{self.nchunks}' if self.nchunks is not np.inf
+                    else ''
+                )
                 if self.drop_nan:
                     chunk.dropna(inplace=True)
                 else:
@@ -97,46 +111,63 @@ class ChunkStreaming:
                 self.__chunk_counter += 1
                 yield chunk
                 self.processed_rows += len(chunk)
-                if self.log:
-                    print()
+                self.log_print('')
 
-    def foreach_column(self, mapper, feeder, reducer):
+    def __mapper_function(self, pair):
+        index_transformer = self.index_transformer or (lambda x: x)
+        work, data = pair
+        if type(work) in [int, list]:
+            return index_transformer(work), self.column_mapper(data[work])
+        elif type(work) is tuple:
+            return index_transformer(work), self.column_mapper(data[list(work)])
+        else:
+            raise Exception('feeder type not supported')
+
+
+    def __reducer_function(self, pairs):
+        (work0, data0), (work1, data1) = pairs
+        assert work0 == work1, "Attempted to reduce incompatible mapped data"
+        return work0, self.column_reducer(data0, data1)
+
+    def process_columns(self):
         self.processed_rows = 0
-        check_functors(mapper, reducer)
-        chunk = self.chunk_gen()
-        data = next(chunk)
+        check_functors(self.column_mapper, self.column_reducer)
 
-        if feeder is None:
-            feeder = data.columns
+        chunks = self.chunk_gen()
+        data = next(chunks)
+        feeder = self.column_feeder or data.columns
+        self.latest_columns = data.columns
+        chops = len(feeder)
+        self.executors = 4 #D
+        #chops = len(feeder) // self.executors
+        chops = 5
 
-        def map_gen(d):
+        def work_gen():
             for work in feeder:
-                if self.log:
-                    print(f'\r mapping {work} ... ', end='', flush=True)
-                if type(work) in [int, list]:
-                    yield self.index_transformer(work), mapper(d[work])
-                elif type(work) is tuple:
-                    yield self.index_transformer(work), mapper(d[list(work)])
-                else:
-                    raise Exception('feeder type not supported')
+                yield work, data
 
-        mapped0 = list(map_gen(data))
-        if self.log: print()
+        with ThreadPool(self.executors) as pool:
+            mapped0 = list(pool.map(self.__mapper_function, work_gen(), chops))
+        #mapped0 = list(map(mapper.apply, work_gen()))
 
-        data = next(chunk, None)
+        self.log_print('')
+
+        data = next(chunks, None)
         while data is not None:
             t = time()
-            mapped1 = list(map_gen(data))
-            if self.log:
-                print('reducing ... ', end='', flush=True)
-            mapped0 = [
-                (i, reducer(m0, m1))
-                for (i, m0), (_, m1) in zip(mapped0, mapped1)
-            ]
+            with ThreadPool(self.executors) as pool:
+                mapped1 = list(pool.map(self.__mapper_function, work_gen(), chops))
+            #mapped1 = list(map(mapper.apply, work_gen()))
+            self.log_print('reducing ... ', end='', flush=True)
+            with ThreadPool(self.executors) as pool:
+                mapped0 = list(pool.map(
+                    self.__reducer_function,
+                    zip(mapped0, mapped1),
+                    chops
+                ))
             t = time() - t
-            if self.log:
-                print(f'{t:.5} sec')
-            data = next(chunk, None)
+            self.log_print(f'{t:.5} sec')
+            data = next(chunks, None)
 
         return list(mapped0)
 
@@ -144,28 +175,26 @@ class ChunkStreaming:
         self.processed_rows = 0
         check_functors(mapper, reducer)
 
-        chunk = self.chunk_gen()
-        data = next(chunk)
+        chunks = self.chunk_gen()
+        data = next(chunks)
 
         mapped0 = mapper(data)
 
-        data = next(chunk, None)
+        data = next(chunks, None)
         while data is not None:
             mapped1 = mapper(data)
             mapped0 = [
                 reducer(m0, m1)
                 for m0, m1 in zip(mapped0, mapped1)
             ]
-            data = next(chunk, None)
+            data = next(chunks, None)
 
         return list(mapped0)
 
-    def process_columns(self):
-        return self.foreach_column(
-            self.column_mapper,
-            self.column_feeder,
-            self.column_reducer
-        )
-
     def process_chunks(self):
         return self.foreach_chunk(self.chunk_mapper, self.chunk_reducer)
+
+    def log_print(self, *args, **kwargs):
+        if self.log:
+            if not self.parallel:
+                print(*args, **kwargs)
