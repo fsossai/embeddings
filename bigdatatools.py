@@ -146,19 +146,35 @@ class ChunkStreaming:
             for work in feeder:
                 yield work, data
 
-        with ThreadPool(self.executors) as pool:
-            mapped0 = list(pool.map(self.__mapper_function, work_gen(), chops))
-        #mapped0 = list(map(mapper.apply, work_gen()))
-
-        self.log_print('')
+        # First Mapping phase, this does not require a reduce phase
+        self.log_print('mapping\t\t... ', end='', flush=True)
+        t = time()
+        if self.parallel:
+            with ThreadPool(self.executors) as pool:
+                mapped0 = list(pool.map(
+                    self.__mapper_function, work_gen(), chops))
+        else:
+            mapped0 = list(map(self.__mapper_function, work_gen()))
+        t = time() - t
+        self.log_print(f'{t:.5} sec')
 
         data = next(chunks, None)
         while data is not None:
+            # Mapping phase
+            self.log_print('mapping\t\t... ', end='', flush=True)
             t = time()
-            with ThreadPool(self.executors) as pool:
-                mapped1 = list(pool.map(self.__mapper_function, work_gen(), chops))
-            #mapped1 = list(map(mapper.apply, work_gen()))
-            self.log_print('reducing ... ', end='', flush=True)
+            if self.parallel:
+                with ThreadPool(self.executors) as pool:
+                    mapped1 = list(pool.map(
+                        self.__mapper_function, work_gen(), chops))
+            else:
+                mapped1 = list(map(self.__mapper_function, work_gen()))
+            t = time() - t
+            self.log_print(f'{t:.5} sec')
+
+            # Reducing phase
+            self.log_print('reducing\t... ', end='', flush=True)
+            t = time()
             with ThreadPool(self.executors) as pool:
                 mapped0 = list(pool.map(
                     self.__reducer_function,
@@ -196,5 +212,4 @@ class ChunkStreaming:
 
     def log_print(self, *args, **kwargs):
         if self.log:
-            if not self.parallel:
-                print(*args, **kwargs)
+            print(*args, **kwargs)

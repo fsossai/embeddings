@@ -38,10 +38,10 @@ if __name__ == '__main__':
     # creating tuples to be plotted
     cardinalities = [(i, vcount.size) for i, vcount in vcounts]
     print(f'{t} sec')
-    #print(*cardinalities, sep='\n')
+    print(*cardinalities, sep='\n')
     print('\nSorted:')
     cardinalities.sort(key=lambda x: x[1], reverse=True)
-    #print(*cardinalities, sep='\n')
+    print(*cardinalities, sep='\n')
 
     # plotting
     column_selection = [x for x, y in vcounts]
