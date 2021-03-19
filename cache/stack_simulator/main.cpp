@@ -5,6 +5,7 @@
 #include <vector>
 #include <queue>
 #include <cstdio>
+#include <chrono>
 #include <map>
 #include <stack-simulator.hpp>
 #include "dataset_utils.hpp"
@@ -16,14 +17,16 @@ std::vector<std::vector<int64_t>> stack_distances(const dataset_t& dataset);
 
 int main(int argc, char** argv)
 {
+	auto timer_start = std::chrono::steady_clock::now();
 	const int N_SPARSE_FEATURES = 26;
+	const int SPARSE_FEAT_OFFSET = 14;
 	selection_t selected_columns(N_SPARSE_FEATURES);
-	std::iota(selected_columns.begin(), selected_columns.end(), 14);
+	std::iota(selected_columns.begin(), selected_columns.end(), SPARSE_FEAT_OFFSET);
 	parser_parameters_t param = {
 		.selected_columns = selected_columns,
-		.max_samples = (int)1e3*0+10,
+		.max_samples = (int)1e6,
 		.separator = '\t',
-		.filename = "..\\..\\data\\day_100k.csv"
+		.filename = "..\\..\\data\\day_1M.csv"
 	};
 
 	auto dataset = import_dataset(param);	
@@ -67,9 +70,27 @@ int main(int argc, char** argv)
 		}
 	}
 
-	// print to csv file
-	;
-
+	// print to csv files, one for each sparse feature
+	std::string basename = "hrt_f";
+	for (int i = 0; i<N_SPARSE_FEATURES; i++)
+	{
+		std::string name = basename + std::to_string(SPARSE_FEAT_OFFSET + i) + ".csv";
+		std::ofstream file(name, std::ofstream::binary);
+		file.precision(3);
+		file << "size,hitrate\n";
+		std::map<int, float>::iterator it;
+		for (it = hrcs[i].begin(); it != hrcs[i].end(); it++)
+		{
+			file << it->first << ',' << it->second << '\n';
+		}
+		file << endl;
+		file.flush();
+		file.close();
+	}
+	
+	auto timer_stop = std::chrono::steady_clock::now();
+	std::chrono::duration<double> elasped_sec = timer_stop - timer_start;
+	std::cout << "Elapsed time: " << elasped_sec.count() << endl;
 	delete[] hrcs;
 
 	return 0;
