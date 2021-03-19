@@ -175,12 +175,16 @@ class ChunkStreaming:
             # Reducing phase
             self.log_print('reducing\t... ', end='', flush=True)
             t = time()
-            with ThreadPool(self.executors) as pool:
-                mapped0 = list(pool.map(
-                    self.__reducer_function,
-                    zip(mapped0, mapped1),
-                    chops
-                ))
+            if self.parallel:
+                with ThreadPool(self.executors) as pool:
+                    mapped0 = list(pool.map(
+                        self.__reducer_function,
+                        zip(mapped0, mapped1),
+                        chops
+                    ))
+            else:
+                mapped0 = list(map(self.__reducer_function,
+                                   zip(mapped0, mapped1)))
             t = time() - t
             self.log_print(f'{t:.5} sec')
             data = next(chunks, None)

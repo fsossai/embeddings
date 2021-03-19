@@ -25,7 +25,7 @@ if __name__ == '__main__':
     cs = ChunkStreaming(args.files,
                         drop_nan=args.drop_nan,
                         nchunks=args.n_chunks,
-                        parallel=True,
+                        parallel=False,
                         **pandas_kwargs)
     cs.column_mapper = pd.Series.value_counts
     cs.column_feeder = column_selection
