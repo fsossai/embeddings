@@ -1,3 +1,6 @@
+#ifndef __CHRONOMETER_HPP__
+#define __CHRONOMETER_HPP__
+
 #include <chrono>
 #include <vector>
 #include <numeric>
@@ -44,3 +47,5 @@ public:
             / static_cast<double>(_laps.size());
     }
 };
+
+#endif // #ifndef __CHRONOMETER_HPP__

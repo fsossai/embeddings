@@ -1,10 +1,12 @@
 #include <cassert>
 #include <cstdlib>
 #include <iostream>
-#include <rank-tree.hpp>
 #include <set>
 
-RankTreeNode::RankTreeNode(string name) {
+#include "rank_tree.hpp"
+
+template<typename T>
+RankTreeNode<T>::RankTreeNode(T name) {
 	_name = name;
 	_weight = 0;
 	_priority = rand();
@@ -13,8 +15,8 @@ RankTreeNode::RankTreeNode(string name) {
 	_parent = nullptr;
 }
 
-
-RankTreeNode::~RankTreeNode() {
+template<typename T>
+RankTreeNode<T>::~RankTreeNode() {
 	if (_left != nullptr) {
 		delete _left;
 	}
@@ -23,8 +25,8 @@ RankTreeNode::~RankTreeNode() {
 	}
 }
 
-
-void RankTreeNode::print(int level) {
+template<typename T>
+void RankTreeNode<T>::print(int level) {
 	for (int i=0; i< level; i++) {
 		cout << "  ";
 	}
@@ -53,10 +55,10 @@ void RankTreeNode::print(int level) {
 
 }
 
-
-int64_t RankTreeNode::checkWeights() {
-	int64_t leftWeight = 0;
-	int64_t rightWeight = 0;
+template<typename T>
+uint64_t RankTreeNode<T>::checkWeights() {
+	uint64_t leftWeight = 0;
+	uint64_t rightWeight = 0;
 	if (_left != nullptr) {
 		leftWeight = _left->checkWeights();
 	}
@@ -67,8 +69,8 @@ int64_t RankTreeNode::checkWeights() {
 	return _weight;
 }
 
-
-void RankTreeNode::checkPriorities(int priority) {
+template<typename T>
+void RankTreeNode<T>::checkPriorities(int priority) {
 	assert(_priority <= priority);
 	if (_left != nullptr) {
 		_left->checkPriorities(_priority);
@@ -79,7 +81,8 @@ void RankTreeNode::checkPriorities(int priority) {
 }
 
 
-void RankTreeNode::checkParentPointers(RankTreeNode* parent) {
+template<typename T>
+void RankTreeNode<T>::checkParentPointers(RankTreeNode* parent) {
 	assert(_parent == parent);
 	if (_left != nullptr) {
 		_left->checkParentPointers(this);
@@ -90,7 +93,8 @@ void RankTreeNode::checkParentPointers(RankTreeNode* parent) {
 }
 
 
-void RankTreeNode::checkUniqueness(std::set<RankTreeNode*>& ptrs) {
+template<typename T>
+void RankTreeNode<T>::checkUniqueness(std::set<RankTreeNode<T>*>& ptrs) {
 	assert(ptrs.count(this) == 0);
 	auto start_weight = ptrs.size();
 	ptrs.insert(this);
@@ -103,8 +107,8 @@ void RankTreeNode::checkUniqueness(std::set<RankTreeNode*>& ptrs) {
 	assert(ptrs.size() == start_weight + _weight);
 }
 
-
-void RankTreeNode::promote() {
+template<typename T>
+void RankTreeNode<T>::promote() {
 	assert(_parent != nullptr);
 	auto A = _parent;
 	auto GP = _parent->_parent;
@@ -137,8 +141,8 @@ void RankTreeNode::promote() {
 	} 
 }
 
-
-RankTreeNode* RankTreeNode::demote() {
+template<typename T>
+RankTreeNode<T>* RankTreeNode<T>::demote() {
 	assert(!leaf());
 	RankTreeNode* ret;
 	if (_left == nullptr) {
@@ -146,7 +150,7 @@ RankTreeNode* RankTreeNode::demote() {
 	} else if (_right == nullptr) {
 		ret = _left;
 	} else {
-		assert(_left != nullptr and _right != nullptr);
+		assert(_left != nullptr && _right != nullptr);
 		if (_left->_priority >= _right->_priority) {
 			ret = _left;
 		} else {
@@ -158,7 +162,8 @@ RankTreeNode* RankTreeNode::demote() {
 }
 
 
-void RankTreeNode::unlink() {
+template<typename T>
+void RankTreeNode<T>::unlink() {
 	assert(leaf());
 	if (_parent == nullptr) {
 		return;
@@ -173,8 +178,9 @@ void RankTreeNode::unlink() {
 }
 
 
-RankTreeNode* RankTreeNode::makeLeaf() {
-	RankTreeNode* ret = nullptr;
+template<typename T>
+RankTreeNode<T>* RankTreeNode<T>::makeLeaf() {
+	RankTreeNode<T>* ret = nullptr;
 	while(!leaf()) {
 		if (root()) {
 			ret = demote();
@@ -185,9 +191,9 @@ RankTreeNode* RankTreeNode::makeLeaf() {
 	return ret;
 }
 
-
-bool RankTreeNode::fixPriority() {
-	while(_parent != nullptr and _parent->_priority < _priority) {
+template<typename T>
+bool RankTreeNode<T>::fixPriority() {
+	while(_parent != nullptr && _parent->_priority < _priority) {
 		promote();
 	}
 	if (_parent == nullptr) {
@@ -197,8 +203,8 @@ bool RankTreeNode::fixPriority() {
 	}
 }
 
-
-int64_t RankTreeNode::leftChildRank(int64_t rank) {
+template<typename T>
+uint64_t RankTreeNode<T>::leftChildRank(uint64_t rank) {
 	if (root()) {
 		return rank;
 	} else if (leftChild()) {
@@ -209,8 +215,8 @@ int64_t RankTreeNode::leftChildRank(int64_t rank) {
 	}
 }
 
-
-int64_t RankTreeNode::rightChildRank(int64_t rank) {
+template<typename T>
+uint64_t RankTreeNode<T>::rightChildRank(uint64_t rank) {
 	if (root()) {
 		return 1 + rank + leftWeight();
 	} else if (leftChild()) {
@@ -221,8 +227,8 @@ int64_t RankTreeNode::rightChildRank(int64_t rank) {
 	}
 }
 
-
-int64_t RankTreeNode::Rank() {
+template<typename T>
+uint64_t RankTreeNode<T>::Rank() {
 	if (root()) {
 		return leftWeight();
 	} else if (leftChild()) {
@@ -233,36 +239,36 @@ int64_t RankTreeNode::Rank() {
 	}
 }
 
-
-RankTree::RankTree() {
+template<typename T>
+RankTree<T>::RankTree() {
 	_root = nullptr;
 }
 
-
-RankTree::~RankTree() {
+template<typename T>
+RankTree<T>::~RankTree() {
 	if (_root != nullptr) {
 		delete _root;
 	}
 }
 
-
-RankTreeNode* RankTree::first() {
+template<typename T>
+RankTreeNode<T>* RankTree<T>::first() {
 	if (_root == nullptr) {
 		return nullptr;
 	}
-	RankTreeNode* node = _root;
+	RankTreeNode<T>* node = _root;
 	while (node->_left != nullptr) {
 		node = node->_left;
 	}
 	return node;
 }
 
-
-RankTreeNode* RankTree::last() {
+template<typename T>
+RankTreeNode<T>* RankTree<T>::last() {
 	if (_root == nullptr) {
 		return nullptr;
 	}
-	RankTreeNode* node = _root;
+	RankTreeNode<T>* node = _root;
 	while(node->_right != nullptr) {
 		node = node->_right;
 	}
@@ -270,27 +276,32 @@ RankTreeNode* RankTree::last() {
 }
 
 
-bool RankTreeNode::leaf() {
-	return _left == nullptr and _right == nullptr;
+template<typename T>
+bool RankTreeNode<T>::leaf() {
+	return _left == nullptr && _right == nullptr;
 }
 
 
-bool RankTreeNode::root() {
+template<typename T>
+bool RankTreeNode<T>::root() {
 	return _parent == nullptr;
 }
 
 
-bool RankTreeNode::leftChild() {
-	return (_parent != nullptr) and (_parent->_left == this);
+template<typename T>
+bool RankTreeNode<T>::leftChild() {
+	return (_parent != nullptr) && (_parent->_left == this);
 }
 
 
-bool RankTreeNode::rightChild() {
-	return (_parent != nullptr) and (_parent->_right == this);
+template<typename T>
+bool RankTreeNode<T>::rightChild() {
+	return (_parent != nullptr) && (_parent->_right == this);
 }
 
 
-int64_t RankTreeNode::leftWeight() {
+template<typename T>
+uint64_t RankTreeNode<T>::leftWeight() {
 	if (_left != nullptr) {
 		return _left->_weight;
 	} else {
@@ -299,7 +310,8 @@ int64_t RankTreeNode::leftWeight() {
 }
 
 
-int64_t RankTreeNode::rightWeight() {
+template<typename T>
+uint64_t RankTreeNode<T>::rightWeight() {
 	if (_right != nullptr) {
 		return _right->_weight;
 	} else {
@@ -308,7 +320,8 @@ int64_t RankTreeNode::rightWeight() {
 }
 
 
-void RankTreeNode::fixWeights() {
+template<typename T>
+void RankTreeNode<T>::fixWeights() {
 	_weight = 1 + leftWeight() + rightWeight();
 	if (_parent != nullptr) {
 		_parent->fixWeights();
@@ -316,14 +329,16 @@ void RankTreeNode::fixWeights() {
 }
 
 
-RankTreeNode* RankTree::Insert(string name) {
+template<typename T>
+RankTreeNode<T>* RankTree<T>::Insert(T name) {
 	auto node = new RankTreeNode(name);
 	InsertNode(node);
 	return node;
 }
 
 
-void RankTree::InsertNode(RankTreeNode* node) {
+template<typename T>
+void RankTree<T>::InsertNode(RankTreeNode<T>* node) {
 	if (_root == nullptr) {
 		_root = node;
 	} else {
@@ -338,7 +353,8 @@ void RankTree::InsertNode(RankTreeNode* node) {
 }
 
 
-void RankTree::print() {
+template<typename T>
+void RankTree<T>::print() {
 	if (_root == nullptr) {
 		cout << "<Empty tree>\n";
 		return;
@@ -347,18 +363,20 @@ void RankTree::print() {
 }
 
 
-void RankTree::check() {
+template<typename T>
+void RankTree<T>::check() {
 	if (_root != nullptr) {
 		_root->checkPriorities(_root->_priority);
 		_root->checkParentPointers(nullptr);
 		_root->checkWeights();
-		std::set<RankTreeNode*> nodes;
+		std::set<RankTreeNode<T>*> nodes;
 		_root->checkUniqueness(nodes);
 	}
 }
 
 
-void RankTree::Remove(RankTreeNode* node) {
+template<typename T>
+void RankTree<T>::Remove(RankTreeNode<T>* node) {
 	auto newRoot = node->makeLeaf();
 	if (newRoot != nullptr) {
 		_root = newRoot;
@@ -371,10 +389,13 @@ void RankTree::Remove(RankTreeNode* node) {
 }
 
 
-int64_t RankTree::computeSize() {
+template<typename T>
+uint64_t RankTree<T>::computeSize() {
 	if (_root == nullptr) {
 		return 0;
 	} else {
 		return _root->checkWeights();
 	}
 }
+
+#include "rank_tree.spec.cpp"

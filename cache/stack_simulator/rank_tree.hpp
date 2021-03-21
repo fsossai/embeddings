@@ -1,13 +1,15 @@
-#ifndef __RANK_TREE_H__
-#define __RANK_TREE_H__
+#ifndef __RANK_TREE_HPP__
+#define __RANK_TREE_HPP__
 
 #define __STDC_LIMIT_MACROS
 #include <cstdint>
 #include <set>
-#include <string>
+
 using namespace std;
 
+template<typename T>
 class RankTree;
+template<typename T>
 class RankTreeNode;
 
 
@@ -44,29 +46,29 @@ class RankTreeNode;
 
  */
 
-
+template<typename T>
   class RankTreeNode {
-  	friend class RankTree;
+  	friend class RankTree<T>;
   public:
 	// Rank() gives the number of nodes in the tree with a lower
 	// position (in standard tree traversal order) than this one. Runs
 	// in O(lg n) time.
-  	int64_t Rank();
+  	uint64_t Rank();
 
 	// ~RankTreeNode() deletes the node's children, recursively
 	// freeing the tree.
   	~RankTreeNode();
   private:
-  	string _name;
-  	int64_t _weight;
+  	T _name;
+  	uint64_t _weight;
   	int _priority;
 
-  	RankTreeNode* _left;
-  	RankTreeNode* _right;
-  	RankTreeNode* _parent;
+  	RankTreeNode<T>* _left;
+  	RankTreeNode<T>* _right;
+  	RankTreeNode<T>* _parent;
 
 	// RankTreeNode() constructs a new node with the given name.
-  	RankTreeNode(string name);
+  	RankTreeNode(T name);
 
 	bool leaf(); // leaf() indicates that this node is a leaf.
 	bool root(); // root() indicates that this node is the root.
@@ -79,8 +81,8 @@ class RankTreeNode;
 	// leftWeight() and rightWeight() get the weight of the left (or
 	// right child of this node. If the child doesn't exist, they
 	// return 0.
-	int64_t leftWeight(); 
-	int64_t rightWeight();
+	uint64_t leftWeight(); 
+	uint64_t rightWeight();
 
 	// print() recursively prints the nodes, indenting each node to
 	// indicate its level in the tree.
@@ -98,14 +100,14 @@ class RankTreeNode;
 	// children its new parent. If demote() changes the root (i.e. the
 	// given node was the root), it returns the new root. Otherwise it
 	// returns nullptr.
-	RankTreeNode* demote();
+	RankTreeNode<T>* demote();
 	// unlink() removes the node from the tree, and calls fixWeights()
 	// so that the weight invariant is restored. It is an error to
 	// unlink a non-leaf.
 	void unlink();
 	// makeLeaf() demotes the node until it's a leaf. If this causes the
 	// root to change, it returns the new root.
-	RankTreeNode* makeLeaf();
+	RankTreeNode<T>* makeLeaf();
 
 	// fixPriority() returns true if this node is the new head.
 	bool fixPriority();
@@ -116,8 +118,8 @@ class RankTreeNode;
 	// the subtree. leftChildRank() is called if the current node is a
 	// left child, rightChildRank() is called if the current node is a
 	// right child.
-	int64_t leftChildRank(int64_t);
-	int64_t rightChildRank(int64_t);
+	uint64_t leftChildRank(uint64_t);
+	uint64_t rightChildRank(uint64_t);
 
 	////
 	////  Check functions
@@ -126,7 +128,7 @@ class RankTreeNode;
 	// checkWeights() recursively checks that the weight is equal to the
 	// number of nodes rooted at the given subtree (including the
 	// current node).
-	int64_t checkWeights();
+	uint64_t checkWeights();
 
 	// checkPriorities() recursively checks that child nodes' priorities
 	// are <= their parent nodes' priority.
@@ -134,14 +136,15 @@ class RankTreeNode;
 
 	// checkParentPointers() recursively checks that each nodes'
 	// children point back to it.
-	void checkParentPointers(RankTreeNode* parent);
+	void checkParentPointers(RankTreeNode<T>* parent);
 
 	// checkUniqueness() checks that each node only appears in the tree
 	// once.
-	void checkUniqueness(std::set<RankTreeNode*>& ptrs);
+	void checkUniqueness(std::set<RankTreeNode<T>*>& ptrs);
 };
 
 
+template<typename T>
 class RankTree {
 public:
 	// RankTree() constructs a new empty tree.
@@ -149,15 +152,15 @@ public:
 
 	// Insert() creates a new node with the given name and inserts it
 	// into the tree. O(lg n)
-	RankTreeNode* Insert(string name);
+	RankTreeNode<T>* Insert(T name);
 
 	// InsertNode() inserts the given node into the tree. O(lg n)
-	void InsertNode(RankTreeNode* node);
+	void InsertNode(RankTreeNode<T>* node);
 
 	// Remove() removes a node from the tree, BUT DOES NOT DELETE THE
 	// OBJECT. It is now the caller's responsibility to free the
 	// memory. O(lg n)
-	void Remove(RankTreeNode* node);
+	void Remove(RankTreeNode<T>* node);
 
 
 	// The following methods are public to ease testing. While they
@@ -166,10 +169,10 @@ public:
 	// given lower case names to indicate this.
 
 	// first() returns the first node in the tree. O(lg n)
-	RankTreeNode* first();
+	RankTreeNode<T>* first();
 
 	// last() returns the last node in the tree. O(lg n)
-	RankTreeNode* last();
+	RankTreeNode<T>* last();
 
 	// print() prints a representation of the tree to stdout.
 	void print();
@@ -181,13 +184,13 @@ public:
 
 	// computeSize() computes the size of the tree by walking all
 	// pointers.
-	int64_t computeSize();
+	uint64_t computeSize();
 
 	// ~RankTree() frees all nodes still in the tree.
 	~RankTree();
 private:
-	RankTreeNode* _root;
+	RankTreeNode<T>* _root;
 };
 
 
-#endif // #ifndef __RANK_TREE_H__
+#endif // #ifndef __RANK_TREE_HPP__

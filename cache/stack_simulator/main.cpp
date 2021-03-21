@@ -1,60 +1,52 @@
-#include <algorithm>
 #include <iostream>
-#include <sstream>
-#include <fstream>
 #include <vector>
-#include <queue>
-#include <cstdio>
-#include <chrono>
-#include <map>
-#include "dataset.hpp"
-#include "chronometer.hpp"
-#include "cpolicies.hpp"
 
-using std::endl;
-using selection_t = std::vector<int>;
+#include "chronometer.hpp"
+#include "dataset.hpp"
+#include "simulator.hpp"
 
 bool set_cmdline_args(int argc, char **argv, parser_parameters_t& param);
 
 int main(int argc, char** argv)
 {
-	Chronometer chronometer{};
-	constexpr int N_SPARSE_FEATURES = 26;
-	constexpr int SPARSE_FEAT_OFFSET = 14;
-	selection_t selected_columns(N_SPARSE_FEATURES);
-	std::iota(selected_columns.begin(), selected_columns.end(), SPARSE_FEAT_OFFSET);
+	using namespace cache;
+
+	Chronometer chronometer;
+	const int N = 26;
+	const int SPARSE_OFFSET = 14;
+
+	std::vector<int> selected_columns(N);
+	std::iota(selected_columns.begin(), selected_columns.end(), SPARSE_OFFSET);
 	
 	parser_parameters_t param = {
 		.selected_columns = selected_columns,
-		.max_samples = 0,
+		.max_samples = 1,
 		.separator = '\t',
 		.filename = ""
 	};
+
 	if (!set_cmdline_args(argc, argv, param))
 		return -1;
 
-	Dataset<N_SPARSE_FEATURES> dataset(param);
 	chronometer.start();
 	std::cout << "Reading dataset ... " << std::flush;
+	ColMajorDataset<N> dataset(param);
 	dataset.import();
-	auto samples = dataset.get_samples();
+	auto features = dataset.get_features();
 	std::cout << chronometer.lap() << "s" << endl;
 
-	std::cout << "Calculating LRU stack distances ... " << std::flush;
-	auto distances = stack_distances(samples);
-	std::cout << chronometer.lap() << "s" << endl;
-
-	std::cout << "Sorting data ... " << std::flush;
-	for (auto& dist : distances)
-		std::sort(dist.begin(), dist.end());
-	std::cout << chronometer.lap() << "s" << endl;
-
-	std::cout << "Calculating hit-rate curves ... " << std::flush;
-	auto hitrates = hitrate_LRU(distances);
+	std::cout << "Calculating hitrate curves ... " << std::flush;
+	std::vector<std::map<uint64_t, float>> hitrates;
+	hitrates.reserve(N);
+	for (const auto& f : features)
+	{
+		Simulator<Policy::LRU, std::string> simulator;
+		hitrates.push_back(simulator.hitrates(f));
+	}
 	std::cout << chronometer.lap() << "s" << endl;
 
 	std::cout << "Exporting to CSV files ... " << std::flush;
-	export_csv(hitrates, "hitrates_", SPARSE_FEAT_OFFSET);
+	export_csv(hitrates, "hitrates_F", SPARSE_OFFSET);
 	std::cout << chronometer.lap() << "s" << endl;
 
 	std::cout << "Total time: " << chronometer.elapsed() << endl;
@@ -82,4 +74,3 @@ bool set_cmdline_args(int argc, char **argv, parser_parameters_t& param)
 
 	return true;
 }
-
