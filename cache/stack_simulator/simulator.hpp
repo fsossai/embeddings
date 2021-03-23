@@ -6,10 +6,10 @@
 #include <fstream>
 #include <map>
 #include <queue>
-#include <set>
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <unordered_set>
 
 #include "rank_tree.hpp"
 
@@ -31,10 +31,26 @@ class Simulator<Policy::LRU, T>
 {
 public:
     Simulator() = default;
+
     uint64_t reference(const T& key);
+
     std::map<uint64_t, float> hitrates(const std::vector<T>& requests);
-    std::map<uint64_t, float> hitrates(const std::vector<T>& requests,
-        const std::vector<int>& cache_sizes);
+
+    std::map<uint64_t, float>
+        hitrates(
+            const std::vector<T>& requests,
+            const std::vector<uint64_t>& cache_sizes
+        );
+
+    std::map<std::pair<uint64_t, float>, float>
+        hitrates_relative(const std::vector<T>& requests);
+
+    std::map<std::pair<uint64_t, float>, float>
+        hitrates_relative(
+            const std::vector<T>& requests,
+            uint64_t& nuniques
+        );
+    
 private:
     RankTree<T> _rtree;
     std::unordered_map<T, RankTreeNode<T>*> _umap;
@@ -55,6 +71,7 @@ void export_csv(
     const std::vector<std::map<uint64_t, float>>& hitrates,
     const std::string& basename,
     const int feature_offset);
+
 
 /*** DEFINITIONS ***/
 
@@ -102,12 +119,85 @@ Simulator<Policy::LRU, T>::hitrates(const std::vector<T>& requests)
     return hrates;
 }
 
+
 template<typename T>
 std::map<uint64_t, float>
-Simulator<Policy::LRU, T>::hitrates(const std::vector<T>& requests, const std::vector<int>& cache_sizes)
+Simulator<Policy::LRU, T>::hitrates(
+    const std::vector<T>& requests,
+    const std::vector<uint64_t>& cache_sizes)
 {
+    const auto hrates = hitrates(requests);
+    decltype(hrates) filtered;
     
+    for (const auto cache_max_size : cache_sizes)
+    {
+        const auto correspondence = std::upper_bound(
+            hrates.begin(), hrates.end(), cache_max_size,
+            [](const auto& val, const auto& p) { return val < p.first; }
+        );
+
+        // no need to check validity, this will be always possible
+        filtered[cache_max_size] = (--correspondence)->second;
+    }
+    return filtered;
 }
+
+
+template<typename T>
+std::map<std::pair<uint64_t, float>, float>
+Simulator<Policy::LRU, T>::hitrates_relative(const std::vector<T>& requests)
+{
+    uint64_t ignore;
+    return hitrates_relative(requests, ignore);
+}
+
+
+template<typename T>
+std::map<std::pair<uint64_t, float>, float>
+Simulator<Policy::LRU, T>::hitrates_relative(
+    const std::vector<T>& requests,
+    uint64_t& nuniques)
+{
+    // obtaining the number of unique values
+    const int N = std::unordered_set<T>(requests.begin(), requests.end()).size();
+    nuniques = N;
+
+    //std::vector<uint64_t> cache_sizes(cache_sizes_percentage.size());
+    //std::transform(
+    //        cache_sizes_percentage.begin(),
+    //        cache_sizes_percentage.end(),
+    //        cache_sizes.begin(),
+    //        [N](const auto& s) { return static_cast<uint64_t>(s*N); }
+    //    );
+
+    std::vector<uint64_t> stack_distances;
+    std::map<std::pair<uint64_t, float>, float> hrates;
+    stack_distances.reserve(requests.size());
+
+    // this is the core of the simulation
+    for (const auto& key : requests)
+        stack_distances.push_back(reference(key));
+
+    std::sort(stack_distances.begin(), stack_distances.end());
+
+    const float length = static_cast<float>(stack_distances.size());
+    int key = 0, count = 0;
+    for (const auto& val : stack_distances)
+    {
+        const std::pair<uint64_t, float> keys = {key, (key + 1.0f) / N};
+        if (val != key)
+        {
+            hrates[keys] = static_cast<float>(count) / length;
+            key = val;
+        }
+        ++count;
+    }
+
+    return hrates;
+}
+
+
+/*** LFU ***/
 
 template<typename T>
 std::map<uint64_t, float>
