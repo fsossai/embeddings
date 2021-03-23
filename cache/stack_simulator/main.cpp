@@ -12,20 +12,24 @@ void export_csv(
     const std::vector<std::map<std::pair<uint64_t, float>, float>>& hitrates_LRU,
     const std::vector<std::map<uint64_t, float>>& hitrates_LFU,
     const std::string& basename,
-    const int feature_offset);
+    const std::vector<int>& selected_columns);
 
 int main(int argc, char** argv)
 {
 	using namespace cache;
 
 	Chronometer chronometer;
-	const int N = 3;
+	const int N = 8;
 	const int SPARSE_OFFSET = 14;
-	const std::vector<float> cache_sizes_percentage{0.05, 0.1, 0.15};
+	const std::vector<float> cache_sizes_percentage{0.01, 0.5, 0.10, 0.15, 0.20 };
 
-	std::vector<int> selected_columns(N);
-	std::iota(selected_columns.begin(), selected_columns.end(), SPARSE_OFFSET);
-	
+	//std::vector<int> selected_columns(N);
+	//std::iota(selected_columns.begin(), selected_columns.end(), SPARSE_OFFSET);
+
+	// These are the 8 features associated with the 8 biggest tables
+	std::vector<int> selected_columns{33,14,35,23,34,24,36,25};
+	std::sort(selected_columns.begin(), selected_columns.end());
+
 	parser_parameters_t param = {
 		.selected_columns = selected_columns,
 		.max_samples = 1,
@@ -63,12 +67,6 @@ int main(int argc, char** argv)
 	std::vector<std::map<uint64_t, float>> hitrates_LFU;
 	hitrates_LFU.reserve(N);
 	auto cache_sizes_it = cache_sizes.begin();
-	for (auto v : cache_sizes) //D
-	{
-		for (auto s : v)
-			std::cout << s << ',';
-		std::cout << '\n';
-	}
 
 	for (const auto& f : features)
 	{
@@ -78,7 +76,7 @@ int main(int argc, char** argv)
 	std::cout << chronometer.lap() << "s" << endl;
 
 	std::cout << "Exporting to CSV files ... " << std::flush;
-	export_csv(hitrates_LRU, hitrates_LFU, "hitrates_f", SPARSE_OFFSET);
+	export_csv(hitrates_LRU, hitrates_LFU, "hitrates_f", selected_columns);
 	std::cout << chronometer.lap() << "s" << endl;
 
 	std::cout << "Total time: " << chronometer.elapsed() << endl;
@@ -126,14 +124,14 @@ void export_csv(
     const std::vector<std::map<std::pair<uint64_t, float>, float>>& hitrates_LRU,
     const std::vector<std::map<uint64_t, float>>& hitrates_LFU,
     const std::string& basename,
-    const int feature_offset)
+    const std::vector<int>& selected_columns)
 {
 	const int N = hitrates_LRU.size();
-
+	auto column_it = selected_columns.begin();
 	for (int i = 0; i<N; i++)
 	{
 		std::string name =
-            basename + std::to_string(feature_offset + i) + ".csv";
+            basename + std::to_string(*(column_it++)) + ".csv";
 		std::ofstream file(name, std::ofstream::binary);
 		file.precision(5);
 		file << "cache_size,cache_size_relative,hitrate_LRU,hitrate_LFU\n";
