@@ -34,13 +34,8 @@ public:
 
     uint64_t reference(const T& key);
 
-    std::map<uint64_t, float> hitrates(const std::vector<T>& requests);
-
     std::map<uint64_t, float>
-        hitrates(
-            const std::vector<T>& requests,
-            const std::vector<uint64_t>& cache_sizes
-        );
+        hitrates(const std::vector<T>& requests);
 
     std::map<std::pair<uint64_t, float>, float>
         hitrates_relative(const std::vector<T>& requests);
@@ -48,9 +43,22 @@ public:
     std::map<std::pair<uint64_t, float>, float>
         hitrates_relative(
             const std::vector<T>& requests,
-            uint64_t& nuniques
+            const uint64_t nunique
         );
-    
+
+    std::map<std::pair<uint64_t, float>, float>
+        hitrates_relative(
+            const std::vector<T>& requests,
+            const std::vector<float>& cache_sizes_percentage
+        );
+
+    std::map<std::pair<uint64_t, float>, float>
+        hitrates_relative(
+            const std::vector<T>& requests,
+            const std::vector<float>& cache_sizes_percentage,
+            const uint64_t nunique
+        );
+
 private:
     RankTree<T> _rtree;
     std::unordered_map<T, RankTreeNode<T>*> _umap;
@@ -66,11 +74,6 @@ public:
 private:
     //
 };
-
-void export_csv(
-    const std::vector<std::map<uint64_t, float>>& hitrates,
-    const std::string& basename,
-    const int feature_offset);
 
 
 /*** DEFINITIONS ***/
@@ -121,34 +124,14 @@ Simulator<Policy::LRU, T>::hitrates(const std::vector<T>& requests)
 
 
 template<typename T>
-std::map<uint64_t, float>
-Simulator<Policy::LRU, T>::hitrates(
-    const std::vector<T>& requests,
-    const std::vector<uint64_t>& cache_sizes)
-{
-    const auto hrates = hitrates(requests);
-    decltype(hrates) filtered;
-    
-    for (const auto cache_max_size : cache_sizes)
-    {
-        const auto correspondence = std::upper_bound(
-            hrates.begin(), hrates.end(), cache_max_size,
-            [](const auto& val, const auto& p) { return val < p.first; }
-        );
-
-        // no need to check validity, this will be always possible
-        filtered[cache_max_size] = (--correspondence)->second;
-    }
-    return filtered;
-}
-
-
-template<typename T>
 std::map<std::pair<uint64_t, float>, float>
-Simulator<Policy::LRU, T>::hitrates_relative(const std::vector<T>& requests)
+Simulator<Policy::LRU, T>::hitrates_relative(
+    const std::vector<T>& requests)
 {
-    uint64_t ignore;
-    return hitrates_relative(requests, ignore);
+    // obtaining the number of unique values
+    const int N = std::unordered_set<T>(
+        requests.begin(), requests.end()).size();
+    return hitrates_relative(requests, N);
 }
 
 
@@ -156,20 +139,8 @@ template<typename T>
 std::map<std::pair<uint64_t, float>, float>
 Simulator<Policy::LRU, T>::hitrates_relative(
     const std::vector<T>& requests,
-    uint64_t& nuniques)
+    const uint64_t nunique)
 {
-    // obtaining the number of unique values
-    const int N = std::unordered_set<T>(requests.begin(), requests.end()).size();
-    nuniques = N;
-
-    //std::vector<uint64_t> cache_sizes(cache_sizes_percentage.size());
-    //std::transform(
-    //        cache_sizes_percentage.begin(),
-    //        cache_sizes_percentage.end(),
-    //        cache_sizes.begin(),
-    //        [N](const auto& s) { return static_cast<uint64_t>(s*N); }
-    //    );
-
     std::vector<uint64_t> stack_distances;
     std::map<std::pair<uint64_t, float>, float> hrates;
     stack_distances.reserve(requests.size());
@@ -184,7 +155,7 @@ Simulator<Policy::LRU, T>::hitrates_relative(
     int key = 0, count = 0;
     for (const auto& val : stack_distances)
     {
-        const std::pair<uint64_t, float> keys = {key, (key + 1.0f) / N};
+        const std::pair<uint64_t, float> keys = {key, (key + 1.0f) / nunique};
         if (val != key)
         {
             hrates[keys] = static_cast<float>(count) / length;
@@ -196,6 +167,53 @@ Simulator<Policy::LRU, T>::hitrates_relative(
     return hrates;
 }
 
+template<typename T>
+std::map<std::pair<uint64_t, float>, float>
+Simulator<Policy::LRU, T>::hitrates_relative(
+    const std::vector<T>& requests,
+    const std::vector<float>& cache_sizes_percentage)
+{
+    // obtaining the number of unique values
+    const int N = std::unordered_set<T>(
+        requests.begin(), requests.end()).size();
+    return hitrates_relative(requests, cache_sizes_percentage, N);
+}
+
+
+template<typename T>
+std::map<std::pair<uint64_t, float>, float>
+Simulator<Policy::LRU, T>::hitrates_relative(
+    const std::vector<T>& requests,
+    const std::vector<float>& cache_sizes_percentage,
+    const uint64_t nunique)
+{
+    using hitrate_t = std::map<std::pair<uint64_t, float>, float>;
+    const hitrate_t hrates = hitrates_relative(requests, nunique);
+    hitrate_t filtered;
+
+    std::vector<uint64_t> cache_sizes(cache_sizes_percentage.size());
+    std::transform(
+        cache_sizes_percentage.begin(),
+        cache_sizes_percentage.end(),
+        cache_sizes.begin(),
+        [nunique](auto s) { return static_cast<uint64_t>(s * nunique); }
+    );
+
+    for (const auto cache_max_size : cache_sizes)
+    {
+        const auto match = std::adjacent_find(
+            hrates.begin(), hrates.end(),
+            [cache_max_size](const auto& a, const auto& b)
+            {
+                return (a.first.first <= cache_max_size) &&
+                    (cache_max_size < b.first.first);
+            }
+        );
+        const auto [key, val] = *match;
+        filtered[key] = val;
+    }
+    return filtered;
+}
 
 /*** LFU ***/
 
@@ -211,6 +229,11 @@ Simulator<Policy::LFU, T>::hitrates(
 
     for (const auto& cache_max_size : cache_sizes)
     {
+        if (cache_max_size == 0)
+        {
+            hrates[0] = 0.0f / n_requests;
+            continue;
+        }
         std::vector<heap_t> in_cache;
         
         in_cache.reserve(cache_max_size);
@@ -247,28 +270,6 @@ Simulator<Policy::LFU, T>::hitrates(
     return hrates;
 }
 
-void export_csv(
-    const std::vector<std::map<uint64_t, float>>& hitrates,
-    const std::string& basename,
-    const int feature_offset)
-{
-	const int N = hitrates.size();
-	for (int i = 0; i<N; i++)
-	{
-		std::string name =
-            basename + std::to_string(feature_offset + i) + ".csv";
-		std::ofstream file(name, std::ofstream::binary);
-		file.precision(5);
-		file << "size,hitrate\n";
-
-		for (const auto& [key, val] : hitrates[i])
-			file << key << ',' << val << '\n';
-		
-		file << endl;
-		file.flush();
-		file.close();
-	}
-}
 
 }
 
