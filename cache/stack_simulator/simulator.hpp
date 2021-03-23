@@ -5,6 +5,8 @@
 #include <cstdint>
 #include <fstream>
 #include <map>
+#include <queue>
+#include <set>
 #include <string>
 #include <vector>
 #include <unordered_map>
@@ -17,6 +19,7 @@ class Policy
 {
 public:
     class LRU;
+    class LFU;
 };
 
 template<typename P, typename T>
@@ -30,9 +33,22 @@ public:
     Simulator() = default;
     uint64_t reference(const T& key);
     std::map<uint64_t, float> hitrates(const std::vector<T>& requests);
+    std::map<uint64_t, float> hitrates(const std::vector<T>& requests,
+        const std::vector<int>& cache_sizes);
 private:
     RankTree<T> _rtree;
     std::unordered_map<T, RankTreeNode<T>*> _umap;
+};
+
+template<typename T>
+class Simulator<Policy::LFU, T>
+{
+public:
+    Simulator() = default;
+    std::map<uint64_t, float> hitrates(const std::vector<T>& requests,
+        const std::vector<uint64_t>& cache_sizes);
+private:
+    //
 };
 
 void export_csv(
@@ -81,6 +97,61 @@ Simulator<Policy::LRU, T>::hitrates(const std::vector<T>& requests)
             key = val;
         }
         ++count;
+    }
+
+    return hrates;
+}
+
+template<typename T>
+std::map<uint64_t, float>
+Simulator<Policy::LRU, T>::hitrates(const std::vector<T>& requests, const std::vector<int>& cache_sizes)
+{
+    
+}
+
+template<typename T>
+std::map<uint64_t, float>
+Simulator<Policy::LFU, T>::hitrates(
+    const std::vector<T>& requests,
+    const std::vector<uint64_t>& cache_sizes)
+{
+    std::map<uint64_t, float> hrates;
+    using heap_t = std::pair<uint64_t, T>;
+    const float n_requests = static_cast<float>(requests.size());
+
+    for (const auto& cache_max_size : cache_sizes)
+    {
+        std::vector<heap_t> in_cache;
+        
+        in_cache.reserve(cache_max_size);
+        uint64_t hits = 0;
+
+        for (const auto& req : requests)
+        {
+            const auto elem = std::find_if(in_cache.begin(), in_cache.end(),
+                    [&](const auto& p) { return p.second == req; });
+
+            if (elem != in_cache.end()) // cache hit
+            {
+                ++(elem->first);
+                std::make_heap(in_cache.begin(), in_cache.end(),
+                    std::greater<heap_t>());
+                ++hits;
+            }
+            else // cache miss
+            {
+                if (in_cache.size() == cache_max_size) // eviction
+                {
+                    std::pop_heap(in_cache.begin(), in_cache.end());
+                    in_cache.pop_back();
+                }
+                in_cache.push_back({1, req});
+                std::push_heap(in_cache.begin(), in_cache.end(),
+                    std::greater<heap_t>());
+            }
+            
+        }
+        hrates[cache_max_size] = static_cast<float>(hits) / n_requests;
     }
 
     return hrates;

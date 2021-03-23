@@ -35,18 +35,28 @@ int main(int argc, char** argv)
 	auto features = dataset.get_features();
 	std::cout << chronometer.lap() << "s" << endl;
 
-	std::cout << "Calculating hitrate curves ... " << std::flush;
-	std::vector<std::map<uint64_t, float>> hitrates;
-	hitrates.reserve(N);
+	std::cout << "LRU: calculating hitrate curves ... " << std::flush;
+	std::vector<std::map<uint64_t, float>> hitrates_LRU;
+	hitrates_LRU.reserve(N);
 	for (const auto& f : features)
 	{
 		Simulator<Policy::LRU, std::string> simulator;
-		hitrates.push_back(simulator.hitrates(f));
+		hitrates_LRU.push_back(simulator.hitrates(f));
+	}
+	std::cout << chronometer.lap() << "s" << endl;
+
+	std::cout << "LFU: calculating hitrate curves ... " << std::flush;
+	std::vector<std::map<uint64_t, float>> hitrates_LFU;
+	hitrates_LFU.reserve(N);
+	for (const auto& f : features)
+	{
+		Simulator<Policy::LFU, std::string> simulator;
+		hitrates_LFU.push_back(simulator.hitrates(f, {10,100,1000}));
 	}
 	std::cout << chronometer.lap() << "s" << endl;
 
 	std::cout << "Exporting to CSV files ... " << std::flush;
-	export_csv(hitrates, "hitrates_F", SPARSE_OFFSET);
+	//export_csv(hitrates_LRU, "hitrates_F", SPARSE_OFFSET);
 	std::cout << chronometer.lap() << "s" << endl;
 
 	std::cout << "Total time: " << chronometer.elapsed() << endl;
