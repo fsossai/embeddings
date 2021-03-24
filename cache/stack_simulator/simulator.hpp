@@ -69,12 +69,20 @@ class Simulator<Policy::LFU, T>
 {
 public:
     Simulator() = default;
+    
     std::map<uint64_t, float> hitrates(const std::vector<T>& requests,
         const std::vector<uint64_t>& cache_sizes);
+
 private:
     //
 };
 
+template<typename ForwardIt, typename Getter>
+ForwardIt min_positive_int(
+    ForwardIt first,
+    ForwardIt last,
+    const int limit,
+    Getter p);
 
 /*** DEFINITIONS ***/
 
@@ -224,45 +232,44 @@ Simulator<Policy::LFU, T>::hitrates(
     const std::vector<uint64_t>& cache_sizes)
 {
     std::map<uint64_t, float> hrates;
-    using heap_t = std::pair<uint64_t, T>;
     const float n_requests = static_cast<float>(requests.size());
 
     for (const auto& cache_max_size : cache_sizes)
     {
         if (cache_max_size == 0)
         {
-            hrates[0] = 0.0f / n_requests;
+            hrates[0] = 0.0f;
             continue;
         }
-        std::vector<heap_t> in_cache;
-        
-        in_cache.reserve(cache_max_size);
-        uint64_t hits = 0;
 
+        std::unordered_map<T, int> in_cache;
+        uint64_t current_size = 0;
+        uint64_t hits = 0;
         for (const auto& req : requests)
         {
-            const auto elem = std::find_if(in_cache.begin(), in_cache.end(),
-                    [&](const auto& p) { return p.second == req; });
-
-            if (elem != in_cache.end()) // cache hit
+            if (in_cache[req] > 0) // cache hit
             {
-                ++(elem->first);
-                std::make_heap(in_cache.begin(), in_cache.end(),
-                    std::greater<heap_t>());
+                ++in_cache[req];
                 ++hits;
             }
             else // cache miss
             {
-                if (in_cache.size() == cache_max_size) // eviction
+                if (current_size == cache_max_size) // eviction
                 {
-                    std::pop_heap(in_cache.begin(), in_cache.end());
-                    in_cache.pop_back();
+                    auto min_el = min_positive_int(
+                        in_cache.begin(),
+                        in_cache.end(),
+                        std::numeric_limits<int>::max(),
+                        [](const auto& elem) { return elem.second; }
+                    );
+                    min_el->second = 0;
                 }
-                in_cache.push_back({1, req});
-                std::push_heap(in_cache.begin(), in_cache.end(),
-                    std::greater<heap_t>());
+                else
+                {
+                    ++current_size;
+                }
+                in_cache[req] = 1;
             }
-            
         }
         hrates[cache_max_size] = static_cast<float>(hits) / n_requests;
     }
@@ -270,7 +277,32 @@ Simulator<Policy::LFU, T>::hitrates(
     return hrates;
 }
 
+// This function is tailored for containers with small values,
+// where generally, the smallest positive is 1 or 2.
+template<typename ForwardIt, typename Getter>
+ForwardIt min_positive_int(
+    ForwardIt first,
+    ForwardIt last,
+    const int limit,
+    Getter g)
+{
+    int key = 1;
+    ForwardIt min_el;
+    do
+    {
+        min_el = std::find_if(first, last,
+            [&](const auto& elem)
+            { return g(elem) == key; }
+        );
+        ++key;
 
+        if (key == limit)
+            return last;
+    }
+    while (min_el == last);
+    return min_el;
 }
+
+} // end namespace cache
 
 #endif // #ifndef __SIMULATOR_HPP__

@@ -8,7 +8,6 @@ python perfprofiler.py                                          ^
  --title            "LRU/LFU comparison - Performance profile"  ^
  --output           perfprof.pdf                                ^
  --problem-type     max                                         ^
- --marker-type      points                                      ^
- --limit            0.7
+ --marker-type      points
 
 echo Done

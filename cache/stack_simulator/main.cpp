@@ -27,6 +27,7 @@ int main(int argc, char** argv)
 	const int N = 8;
 	const int SPARSE_OFFSET = 14;
 	const std::vector<float> cache_sizes_percentage{0.01, 0.05, 0.10, 0.15, 0.20 };
+	//const std::vector<float> cache_sizes_percentage{0.01, 0.02, 0.03, 0.04, 0.05 };
 
 	//std::vector<int> selected_columns(N);
 	//std::iota(selected_columns.begin(), selected_columns.end(), SPARSE_OFFSET);
@@ -71,8 +72,8 @@ int main(int argc, char** argv)
 
 	std::vector<std::map<uint64_t, float>> hitrates_LFU;
 	hitrates_LFU.reserve(N);
-	auto cache_sizes_it = cache_sizes.begin();
 
+	auto cache_sizes_it = cache_sizes.begin();
 	for (const auto& f : features)
 	{
 		Simulator<Policy::LFU, std::string> simulator;
