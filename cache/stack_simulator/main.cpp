@@ -13,6 +13,11 @@ void export_csv(
     const std::vector<std::map<uint64_t, float>>& hitrates_LFU,
     const std::string& basename,
     const std::vector<int>& selected_columns);
+void export_perfprof(
+    const std::vector<std::map<std::pair<uint64_t, float>, float>>& hitrates_LRU,
+    const std::vector<std::map<uint64_t, float>>& hitrates_LFU);
+
+constexpr int OUTPUT_FP_PRECISION = 5;
 
 int main(int argc, char** argv)
 {
@@ -77,6 +82,7 @@ int main(int argc, char** argv)
 
 	std::cout << "Exporting to CSV files ... " << std::flush;
 	export_csv(hitrates_LRU, hitrates_LFU, "hitrates_f", selected_columns);
+	export_perfprof(hitrates_LRU, hitrates_LFU);
 	std::cout << chronometer.lap() << "s" << endl;
 
 	std::cout << "Total time: " << chronometer.elapsed() << endl;
@@ -133,7 +139,7 @@ void export_csv(
 		std::string name =
             basename + std::to_string(*(column_it++)) + ".csv";
 		std::ofstream file(name, std::ofstream::binary);
-		file.precision(5);
+		file.precision(OUTPUT_FP_PRECISION);
 		file << "cache_size,cache_size_relative,hitrate_LRU,hitrate_LFU\n";
 
 		auto LFU_it = hitrates_LFU[i].begin();
@@ -148,4 +154,27 @@ void export_csv(
 		file.flush();
 		file.close();
 	}
+}
+
+void export_perfprof(
+    const std::vector<std::map<std::pair<uint64_t, float>, float>>& hitrates_LRU,
+    const std::vector<std::map<uint64_t, float>>& hitrates_LFU)
+{
+	const int N = hitrates_LRU.size();
+	std::ofstream file("comparison.csv", std::ofstream::binary);
+	file.precision(OUTPUT_FP_PRECISION);
+	file << "2,hitrate_LRU,hitrate_LFU\n";
+
+	int counter = 1;
+	for (int i = 0; i<N; i++)
+	{
+		auto LFU_it = hitrates_LFU[i].begin();
+		for (const auto& [key, h_LRU] : hitrates_LRU[i])
+		{
+			const auto [_, h_LFU] = *(LFU_it++);
+			file << counter++ << ',' << h_LRU << ',' << h_LFU << '\n';
+		}
+		
+	}
+	file.close();
 }
