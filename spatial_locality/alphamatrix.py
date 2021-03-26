@@ -68,8 +68,11 @@ if __name__ == '__main__':
 
     # compute all correlations in a numpy matrix
     nsel = len(column_selection)
-    A = np.empty(tuple([nsel] * args.order))
+    A = np.empty(tuple([nsel] * args.order)) # alpha matrix
     A[:] = np.nan
+
+    # filling alpha matrix
+    alphas = []
     offset = min(column_selection)
     for index, vcounts in vcs:
         matrix_index = tuple([i - offset for i in index])
@@ -78,20 +81,63 @@ if __name__ == '__main__':
             cs.processed_rows,
             vcounts.size
         )
+        alphas.append((index, A[matrix_index]))
+
+    # rearrangin alpha matrix in such a way that correlated features
+    # appears one after the other
+
+    # finding a feature reordering according to alpha correlation
+    new_order = []
+    alphas.sort(reverse=True, key=lambda x: x[1])
+    for (f1, f2), _ in alphas:
+        if f1 not in new_order:
+            new_order.append(f1)
+        if f2 not in new_order:
+            new_order.append(f2)
+
+    # getting the permutation corresponding to 'new_order' ordering
+    permutation = dict()
+    for i, fi in enumerate(new_order):
+        permutation[fi] = i
+
+    # finally creating and filling B
+    B = np.empty(tuple([nsel] * args.order)) # permutation of A
+    B[:] = np.nan
+    for i in range(nsel):
+        for j in range(nsel):
+            # if i == j:
+            #     pass
+            A_location = tuple(sorted(
+                [new_order[i] - offset, new_order[j] - offset]
+            ))
+            B[i, j] = A[A_location]
 
     t = time() - t
     print(f'Elapsed time\t: {t:.5} sec')
 
     # saving to file
-    outname = 'alpha_' + str(int(time()))
-    np.save(outname, A)
+    timestamp = str(int(time()))
+    np.save('alphaA_' + timestamp, A)
+    np.save('alphaB_' + timestamp, B)
 
-    # plotting image
+    # plotting A
+    plt.figure(0)
     plt.imshow(A)
-    plt.xticks(range(len(column_selection)), column_selection)
-    plt.yticks(range(len(column_selection)), column_selection)
+    plt.xticks(range(nsel), column_selection)
+    plt.yticks(range(nsel), column_selection)
     plt.colorbar()
     plt.grid(True)
     plt.tight_layout()
-    plt.savefig(outname + '.png')
+    plt.savefig('alphaA_' + timestamp + '.png')
+
+    # plotting B
+    plt.figure(1)
+    plt.imshow(B)
+    plt.xticks(range(nsel), new_order)
+    plt.yticks(range(nsel), new_order)
+    plt.colorbar()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig('alphaB_' + timestamp + '.png')
+
     plt.show()

@@ -20,7 +20,7 @@ if args.feature_index not in range(14,39+1):
     print('ERROR: Feature must be in range [14,39]')
     sys.exit(-1)
 
-data = pd.read_csv('..\data\day_100k.csv', sep='\t', header=None)
+data = pd.read_csv('..\data\day_1M.csv', sep='\t', header=None)
 wsize = args.window_size
 
 column = data[args.feature_index].replace(np.nan, 0)
