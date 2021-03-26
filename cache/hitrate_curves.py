@@ -9,6 +9,7 @@ import pandas as pd
 import argparse
 from glob import glob
 import re
+import sys
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -16,39 +17,33 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     all_files = glob(args.files)
-
+    if len(all_files) == 0:
+        print('ERROR: files not found')
+        sys.exit(-1)
+  
     # importing into DataFrame all CSV files of the hitrates
     hitrates = dict()
     for file in all_files:
         index = int(re.findall(r'\d+', file)[-1])
         hitrates[index] = pd.read_csv(file)
-
-    feats = [33, 14, 35, 23]
-    # feats = [34, 24, 36, 25]
-    fig, axs = plt.subplots(2, 2)
+   
+    feats = [33, 14, 35, 23, 34, 24, 36, 25]
+    N1, N2 = 2, 4
+    fig, axs = plt.subplots(N1, N2)
 
     # The four most frequent
-    axs[0, 0].plot(hitrates[feats[0]]['size'], hitrates[feats[0]]['hitrate'])
-    axs[0, 1].plot(hitrates[feats[1]]['size'], hitrates[feats[1]]['hitrate'])
-    axs[1, 0].plot(hitrates[feats[2]]['size'], hitrates[feats[2]]['hitrate'])
-    axs[1, 1].plot(hitrates[feats[3]]['size'], hitrates[feats[3]]['hitrate'])
+    k = 0
+    for i in range(N1):
+        for j in range(N2):
+            axs[i, j].plot(hitrates[feats[k]]['size'],
+                hitrates[feats[k]]['hitrate'])
+            axs[i, j].set(ylim=[0, 1], title='Feature ' + str(feats[k]))
+            if i == N1-1:
+                axs[i, j].set(xlabel='Cache size (elements)')
+            if j == 0:
+                axs[i, j].set(ylabel='Hit-rate')
+            k += 1
 
-    axs[0, 0].set(ylim=[0, 1])
-    axs[0, 1].set(ylim=[0, 1])
-    axs[1, 0].set(ylim=[0, 1])
-    axs[1, 1].set(ylim=[0, 1])
-
-    axs[0, 0].set(ylabel='Hit-rate', xscale='log')
-    axs[0, 1].set(xscale='log')
-    axs[1, 0].set(xlabel='Cache size (elements)', ylabel='Hit-rate', xscale='log')
-    axs[1, 1].set(xlabel='Cache size (elements)', xscale='log')
-
-    # The four least frequent
-    # axs[0, 0].plot(hitrates[19]['size'], hitrates[19]['hitrate'])
-    # axs[0, 1].plot(hitrates[30]['size'], hitrates[30]['hitrate'])
-    # axs[1, 0].plot(hitrates[26]['size'], hitrates[26]['hitrate'])
-    # axs[1, 1].plot(hitrates[32]['size'], hitrates[32]['hitrate'])
-
-    fig.suptitle('Hit-rate curves')
+    fig.suptitle('LRU Hit-rate curves')
     plt.tight_layout()
     plt.show()
