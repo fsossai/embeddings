@@ -87,7 +87,7 @@ class ChunkStreaming:
         self.pandas_args = pandas_args
         self.processed_rows = 0
         self.log = log
-        self.nchunks = nchunks
+        self.nchunks = nchunks if nchunks is not None else np.inf
         self.__chunk_counter = 0
         self.parallel = parallel
         self.executors = cpu_count(logical=False) if parallel else 1
