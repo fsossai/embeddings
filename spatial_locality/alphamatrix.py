@@ -50,7 +50,7 @@ if __name__ == '__main__':
     vcs = cs.process_columns()
 
     # extract feature domain cardinalities
-    all_cardinalities = {}
+    all_cardinalities = dict()
     for c in column_selection:
         match_finder = (
             next((
@@ -66,6 +66,7 @@ if __name__ == '__main__':
         )
         all_cardinalities[c] = vcounts.index.get_level_values(i).nunique()
 
+    # A
     # compute all correlations in a numpy matrix
     nsel = len(column_selection)
     A = np.empty(tuple([nsel] * args.order)) # alpha matrix
@@ -81,36 +82,47 @@ if __name__ == '__main__':
             cs.processed_rows,
             vcounts.size
         )
+        A[tuple(reversed(matrix_index))] = A[matrix_index]
         alphas.append((index, A[matrix_index]))
 
-    # rearrangin alpha matrix in such a way that correlated features
+    # B
+    # rearranging alpha matrix in such a way that correlated features
     # appears one after the other
 
     # finding a feature reordering according to alpha correlation
-    new_order = []
+    B_order = []
     alphas.sort(reverse=True, key=lambda x: x[1])
     for (f1, f2), _ in alphas:
-        if f1 not in new_order:
-            new_order.append(f1)
-        if f2 not in new_order:
-            new_order.append(f2)
-
-    # getting the permutation corresponding to 'new_order' ordering
-    permutation = dict()
-    for i, fi in enumerate(new_order):
-        permutation[fi] = i
+        if f1 not in B_order:
+            B_order.append(f1)
+        if f2 not in B_order:
+            B_order.append(f2)
 
     # finally creating and filling B
     B = np.empty(tuple([nsel] * args.order)) # permutation of A
     B[:] = np.nan
     for i in range(nsel):
         for j in range(nsel):
-            # if i == j:
-            #     pass
             A_location = tuple(sorted(
-                [new_order[i] - offset, new_order[j] - offset]
+                [B_order[i] - offset, B_order[j] - offset]
             ))
             B[i, j] = A[A_location]
+
+    # C
+    # rearrangement based on the biggest ones
+    C_order = [(k, all_cardinalities[k]) for k in all_cardinalities]
+    C_order.sort(reverse=True, key=lambda x: x[1])
+    C_order = [x for x,_ in C_order]
+
+    # filling C
+    C = np.empty(tuple([nsel] * args.order)) # permutation of A
+    C[:] = np.nan
+    for i in range(nsel):
+        for j in range(nsel):
+            A_location = tuple(sorted(
+                [C_order[i] - offset, C_order[j] - offset]
+            ))
+            C[i, j] = A[A_location]
 
     t = time() - t
     print(f'Elapsed time\t: {t:.5} sec')
@@ -119,11 +131,13 @@ if __name__ == '__main__':
     timestamp = str(int(time()))
     np.save('alphaA_' + timestamp, A)
     np.save('alphaB_' + timestamp, B)
+    np.save('alphaC_' + timestamp, C)
 
     # plotting A
     plt.figure(0)
+    plt.title('Alpha matrix - No reordering')
     plt.imshow(A)
-    plt.xticks(range(nsel), column_selection)
+    plt.xticks(range(nsel), column_selection, rotation=90)
     plt.yticks(range(nsel), column_selection)
     plt.colorbar()
     plt.grid(True)
@@ -132,12 +146,24 @@ if __name__ == '__main__':
 
     # plotting B
     plt.figure(1)
+    plt.title('Alpha matrix - Correlation-based reordering')
     plt.imshow(B)
-    plt.xticks(range(nsel), new_order)
-    plt.yticks(range(nsel), new_order)
+    plt.xticks(range(nsel), B_order, rotation=90)
+    plt.yticks(range(nsel), B_order)
     plt.colorbar()
     plt.grid(True)
     plt.tight_layout()
     plt.savefig('alphaB_' + timestamp + '.png')
+
+    # plotting C
+    plt.figure(2)
+    plt.title('Alpha matrix - Sorted by table size')
+    plt.imshow(C)
+    plt.xticks(range(nsel), C_order, rotation=90)
+    plt.yticks(range(nsel), C_order)
+    plt.colorbar()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig('alphaC_' + timestamp + '.png')
 
     plt.show()
