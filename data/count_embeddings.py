@@ -14,6 +14,8 @@ if __name__ == '__main__':
     parser.add_argument('--top', '-t', type=int, default=None)
     parser.add_argument('--highlight', '-H', type=int, default=0)
     parser.add_argument('--linear-plot', '-l', action='store_true', default=False)
+    parser.add_argument('--reverse-order', '-r', action='store_true', default=False)
+    
     args = parser.parse_args()
 
     column_selection = bigdatatools.get_range_list(args.column_selection)
@@ -49,7 +51,7 @@ if __name__ == '__main__':
 
     print(*cardinalities, sep='\n')
     print('\nSorted:')
-    cardinalities.sort(key=lambda x: x[1], reverse=True)
+    cardinalities.sort(key=lambda x: x[1], reverse=not args.reverse_order)
     t = time() - t
 
     if args.top is not None:
@@ -72,9 +74,9 @@ if __name__ == '__main__':
         h_label = None
 
     ax.bar(range(nsel), base,
-        log=False if args.linear_plot else True)
+        log=not args.linear_plot)
     ax.bar(range(nsel), xy[2],
-        log=False if args.linear_plot else True, bottom=base, label=h_label)
+        log=not args.linear_plot, bottom=base, label=h_label)
     
     plt.xticks(range(nsel), xy[0], rotation=70)
     plt.xlabel('Feature index')
@@ -88,4 +90,4 @@ if __name__ == '__main__':
     plt.show()
 
 # Command line example:
-# python count_embeddings.py -f *.gz -z -c 1000000 -n 1 -L -t 10 -H 1
+# python count_embeddings.py -f *.gz -z -c 1000000 -n 1 -S 14-39 -l -t 10 -H 1
