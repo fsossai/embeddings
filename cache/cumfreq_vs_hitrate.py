@@ -1,6 +1,8 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import re
+from glob import glob
 from time import time
 
 import sys; sys.path.append('..')
@@ -9,11 +11,24 @@ from bigdatatools import ChunkStreaming
 
 if __name__ == '__main__':
     parser = bigdatatools.default_parser()
-    parser.description = 'Cumulative frequencies'
+    parser.description = 'Cumulative frequencies compared to hit-rate of LRU'
     parser.add_argument('--files', '-f', type=str, default=None, required=True)
-    parser.add_argument('--drop-nan', '-d', action='store_true', default=False)
+    parser.add_argument('--hitrates', '-H', type=str, default=None, required=True)
+    
     args = parser.parse_args()
 
+    all_files = glob(args.hitrates)
+    if len(all_files) == 0:
+        print('ERROR: hitrates files not found')
+        sys.exit(-1)
+  
+    # importing into DataFrame all CSV files of the hitrates
+    hitrates = dict()
+    for file in all_files:
+        index = int(re.findall(r'\d+', file)[-1])
+        hitrates[index] = pd.read_csv(file)
+
+    # loading dataset for cumfreq computation
     column_selection = bigdatatools.get_range_list(args.column_selection)
     pandas_kwargs = {
         'sep': '\t',
@@ -24,7 +39,7 @@ if __name__ == '__main__':
     }
 
     cs = ChunkStreaming(args.files,
-                        drop_nan=args.drop_nan,
+                        drop_nan=False,
                         nchunks=args.n_chunks,
                         parallel=False,
                         **pandas_kwargs)
@@ -39,30 +54,33 @@ if __name__ == '__main__':
 
     t = time()
     vcounts = cs.process_columns()
-    t = time() - t
-
-    # cumulative distribution of frequencies
-
-    N1, N2 = 4, 5
-    fig, axs = plt.subplots(N1, N2)
-    sizes = [(i, vc.size) for i, vc in vcounts]
     
+    # cumulative distribution of frequencies
+    sizes = [(i, vc.size) for i, vc in vcounts]
     cdf = dict([
         (i, np.cumsum(vc.to_numpy() / vc.sum()))
         for i, vc in vcounts
     ])
+    t = time() - t    
+    print(f'Elapsed time: {t} sec')
 
-    # selecting only the biggest features
-    plt_selection = [x for x,y in sorted(sizes, reverse=True, key=lambda x: x[1])]
+    # plt_selection = [x for x,y in sorted(sizes, reverse=True, key=lambda x: x[1])]
 
+    nsel = len(column_selection)
+    fig, axs = plt.subplots(2, nsel)
     sizes = dict([(i, vc.size) for i, vc in vcounts])
-    k = 0
-    for i in range(N1):
-        for j in range(N2):
-            sel = plt_selection[k]
-            axs[i, j].plot(range(1, sizes[sel]+1), cdf[sel])
-            axs[i, j].set(title='Feature ' + str(sel))
-            k += 1
 
+    for i, feat in enumerate(column_selection):
+        axs[0, i].plot(range(1, sizes[feat]+1), cdf[feat])
+        axs[0, i].set(ylim=[0, 1])
+        axs[0, i].set(title=f'Feature {feat}')
+        axs[1, i].plot(hitrates[feat]['size'], hitrates[feat]['hitrate'])
+        axs[1, i].set(ylim=[0, 1])
+        
+    axs[0, 0].set(ylabel='Cumulative frequency')
+    axs[1, 0].set(ylabel='Hit-rate')
     plt.tight_layout()
     plt.show()
+
+# Command line example:
+# python cumfreq_vs_hitrate.py -c 1000000 -n 1 -z -f "..\data\*.gz" -H hitrates_csv\LRU* -S 14,25,16,37
