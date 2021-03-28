@@ -36,7 +36,7 @@ if __name__ == '__main__':
             axs[i, j].plot(hitrates[feats[k]]['cache_size_relative']*100,
                 hitrates[feats[k]]['hitrate_LRU'], '.-', label='LRU', )
             axs[i, j].plot(hitrates[feats[k]]['cache_size_relative']*100,
-                hitrates[feats[k]]['hitrate_LFU'], '.-', label='LRU', )
+                hitrates[feats[k]]['hitrate_LFU'], '.-', label='LFU', )
             k += 1
     
     # setting axis limits

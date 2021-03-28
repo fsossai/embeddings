@@ -11,6 +11,9 @@ if __name__ == '__main__':
     parser.description = 'Cardinality of categorical features\' domain'
     parser.add_argument('--files', '-f', type=str, default=None, required=True)
     parser.add_argument('--drop-nan', '-d', action='store_true', default=False)
+    parser.add_argument('--top', '-t', type=int, default=None)
+    parser.add_argument('--highlight', '-H', type=int, default=0)
+    parser.add_argument('--linear-plot', '-l', action='store_true', default=False)
     args = parser.parse_args()
 
     column_selection = bigdatatools.get_range_list(args.column_selection)
@@ -33,23 +36,56 @@ if __name__ == '__main__':
 
     t = time()
     vcounts = cs.process_columns()
-    t = time() - t
 
     # creating tuples to be plotted
-    cardinalities = [(i, vcount.size) for i, vcount in vcounts]
-    print(f'{t} sec')
+    cardinalities = [
+        (
+            i,
+            vcount.size,
+            (vcount <= args.highlight).sum()
+        )
+        for i, vcount in vcounts
+    ]
+
     print(*cardinalities, sep='\n')
     print('\nSorted:')
     cardinalities.sort(key=lambda x: x[1], reverse=True)
+    t = time() - t
+
+    if args.top is not None:
+        cardinalities = cardinalities[:args.top]
     print(*cardinalities, sep='\n')
+    print(f'\nElapsed time: {t} sec')
 
     # plotting
+    nsel = args.top if args.top is not None else len(column_selection)
     column_selection = [x for x, y in vcounts]
     xy = list(zip(*cardinalities))
-    plt.bar(cs.latest_columns, xy[1], log=True)
-    plt.xticks(cs.latest_columns, xy[0], rotation=70)
+    base = [size - highlight for _, size, highlight in cardinalities]
+
+    fig, ax = plt.subplots()
+    if args.highlight == 1:
+        h_label = f'Fraction of IDs appearing only once'
+    elif args.highlight > 1:
+        h_label = f'Fraction of IDs appearing no more than {args.highlight} times'
+    else:
+        h_label = None
+
+    ax.bar(range(nsel), base,
+        log=False if args.linear_plot else True)
+    ax.bar(range(nsel), xy[2],
+        log=False if args.linear_plot else True, bottom=base, label=h_label)
+    
+    plt.xticks(range(nsel), xy[0], rotation=70)
     plt.xlabel('Feature index')
     plt.ylabel('Number of unique IDs')
-    plt.title("Cardinality of the features' domain")
+    plt.title("Cardinality of the features' domain" +
+        f" (Top {args.top})" if args.top is not None else "")
+
     plt.tight_layout()
+    if args.highlight > 0:
+        plt.legend()
     plt.show()
+
+# Command line example:
+# python count_embeddings.py -f *.gz -z -c 1000000 -n 1 -L -t 10 -H 1
