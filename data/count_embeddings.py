@@ -15,6 +15,7 @@ if __name__ == '__main__':
     parser.add_argument('--highlight', '-H', type=int, default=0)
     parser.add_argument('--linear-plot', '-l', action='store_true', default=False)
     parser.add_argument('--reverse-order', '-r', action='store_true', default=False)
+    parser.add_argument('--out-name', '-o', type=str, default=None, required=False)
     
     args = parser.parse_args()
 
@@ -87,6 +88,10 @@ if __name__ == '__main__':
     plt.tight_layout()
     if args.highlight > 0:
         plt.legend()
+
+    timestamp = str(time())
+    name = args.out_name if args.out_name is not None else f'counts_{timestamp}.png'
+    plt.savefig(name)
     plt.show()
 
 # Command line example:
