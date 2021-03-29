@@ -3,7 +3,5 @@ itertools
 matplotlib
 numpy
 pandas
-pickle
 scipy
 seaborn
-time
