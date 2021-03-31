@@ -9,7 +9,7 @@ public:
     
     void heapify(uint64_t i);
     
-    void insert(const Tkey key, const Tval val);
+    void insert(const Tkey& key, Tval&& val);
     
     template<typename Changer>
     void change(const Tkey& key, Changer changer);
@@ -22,12 +22,12 @@ public:
 
     Tval& get(const Tkey& key);
 
-    void set(const Tkey& key, Tval val);
+    void set(const Tkey& key, Tval&& val);
 
-//private:
+private:
     std::vector<std::pair<Tkey, Tval>> _v;
-    std::unordered_map<Tkey, int> _m;
-    Compare _comp = std::greater<Tval>();
+    std::unordered_map<Tkey, uint64_t> _m;
+    Compare _comp;
     uint64_t _current_size = 0;
     uint64_t _max_size;
 
@@ -46,7 +46,7 @@ FixedSizeHeap<Tkey, Tval, Compare>::FixedSizeHeap(
     _comp(Compare()),
     _max_size(max_size)
 {
-    _v.reserve(max_size);
+    _v.resize(max_size);
 }
 
 template<typename Tkey, typename Tval, typename Compare>
@@ -89,7 +89,7 @@ void FixedSizeHeap<Tkey, Tval, Compare>::heapify(uint64_t i)
 
 template<typename Tkey, typename Tval, typename Compare>
 void FixedSizeHeap<Tkey, Tval, Compare>::insert(
-    const Tkey key, const Tval val)
+    const Tkey& key, Tval&& val)
 {
     if (_current_size == _max_size)
     {
@@ -102,7 +102,7 @@ void FixedSizeHeap<Tkey, Tval, Compare>::insert(
     uint64_t i = _current_size;
     ++_current_size;
   
-    // Insert a node in the heap by swapping elements
+    // positioning a node in the heap by swapping elements
     while (i && !_comp(_v[parent(i)].second, _v[i].second))
     {
         _m[_v[i].first] = parent(i);
@@ -153,7 +153,7 @@ Tval& FixedSizeHeap<Tkey, Tval, Compare>::get(const Tkey& key)
 }
 
 template<typename Tkey, typename Tval, typename Compare>
-void FixedSizeHeap<Tkey, Tval, Compare>::set(const Tkey& key, Tval val)
+void FixedSizeHeap<Tkey, Tval, Compare>::set(const Tkey& key, Tval&& val)
 {
     change(
         key,
@@ -163,3 +163,4 @@ void FixedSizeHeap<Tkey, Tval, Compare>::set(const Tkey& key, Tval val)
         }
     );
 }
+
