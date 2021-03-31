@@ -104,6 +104,10 @@ for i in range(0, methods):
 plt.grid(True)
 plt.xlabel(options.xlabel)
 plt.ylabel(options.ylabel)
+plt.yticks(
+    [0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1],
+    [0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1]
+)
 plt.title(options.title)
 plt.legend()
 if len(options.limit) > 0:
