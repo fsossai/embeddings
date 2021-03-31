@@ -9,7 +9,7 @@ public:
     
     void heapify(uint64_t i);
     
-    void insert(const Tkey& key, Tval&& val);
+    void insert(const Tkey& key, Tval val);
     
     template<typename Changer>
     void change(const Tkey& key, Changer changer);
@@ -21,6 +21,8 @@ public:
     bool contains(const Tkey& key);
 
     Tval& get(const Tkey& key);
+
+    void set(const Tkey& key, const Tval& val);
 
     void set(const Tkey& key, Tval&& val);
 
@@ -89,7 +91,7 @@ void FixedSizeHeap<Tkey, Tval, Compare>::heapify(uint64_t i)
 
 template<typename Tkey, typename Tval, typename Compare>
 void FixedSizeHeap<Tkey, Tval, Compare>::insert(
-    const Tkey& key, Tval&& val)
+    const Tkey& key, Tval val)
 {
     if (_current_size == _max_size)
     {
@@ -150,6 +152,18 @@ template<typename Tkey, typename Tval, typename Compare>
 Tval& FixedSizeHeap<Tkey, Tval, Compare>::get(const Tkey& key)
 {
     return _v[_m[key]].second;
+}
+
+template<typename Tkey, typename Tval, typename Compare>
+void FixedSizeHeap<Tkey, Tval, Compare>::set(const Tkey& key, const Tval& val)
+{
+    change(
+        key,
+        [&val](const Tval& old)
+        {
+            return val;
+        }
+    );
 }
 
 template<typename Tkey, typename Tval, typename Compare>

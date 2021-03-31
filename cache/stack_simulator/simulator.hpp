@@ -21,6 +21,7 @@ class Policy
 public:
     class LRU;
     class LFU;
+    class OPT;
 };
 
 template<typename P, typename T>
@@ -78,12 +79,22 @@ private:
     //
 };
 
-template<typename ForwardIt, typename Getter>
-ForwardIt min_positive_int(
-    ForwardIt first,
-    ForwardIt last,
-    const int limit,
-    Getter p);
+
+template<typename T>
+class Simulator<Policy::OPT, T>
+{
+public:
+    Simulator() = default;
+
+    std::map<uint64_t, float> hitrates(const std::vector<T>& requests,
+        const std::vector<uint64_t>& cache_sizes);
+
+private:
+    std::unordered_map<T, std::vector<uint64_t>> next_ref_times(
+        const std::vector<T>& requests
+    );
+};
+
 
 /*** DEFINITIONS ***/
 
@@ -176,6 +187,7 @@ Simulator<Policy::LRU, T>::hitrates_relative(
     return hrates;
 }
 
+
 template<typename T>
 std::map<std::pair<uint64_t, float>, float>
 Simulator<Policy::LRU, T>::hitrates_relative(
@@ -263,6 +275,73 @@ Simulator<Policy::LFU, T>::hitrates(
     }
 
     return hrates;
+}
+
+/*** OPT ***/
+
+template<typename T>
+std::map<uint64_t, float>
+Simulator<Policy::OPT, T>::hitrates(
+    const std::vector<T>& requests,
+    const std::vector<uint64_t>& cache_sizes)
+{
+    std::map<uint64_t, float> hrates;
+    const float n_requests = static_cast<float>(requests.size());
+
+    for (uint64_t cache_max_size : cache_sizes)
+    {
+        if (cache_max_size == 0)
+        {
+            hrates[0] = 0.0f;
+            continue;
+        }
+
+        uint64_t hits = 0;
+        FixedSizeHeap<T, uint64_t, std::greater<uint64_t>> cache(cache_max_size);
+        std::unordered_map<T, int> next_ref_time_index;
+        auto next = next_ref_times(requests);
+
+        for (const T& req : requests)
+        {
+            auto req_next_access = next[req][++next_ref_time_index[req]];
+            if (cache.contains(req)) // cache hit
+            {
+                cache.set(req, std::move(req_next_access));
+                ++hits;
+            }
+            else // cache miss
+            {
+                cache.insert(req, req_next_access);
+            }
+        }
+        
+        hrates[cache_max_size] = static_cast<float>(hits) / n_requests;
+    }
+
+    return hrates;
+}
+
+
+template<typename T>
+std::unordered_map<T, std::vector<uint64_t>>
+Simulator<Policy::OPT, T>::next_ref_times(const std::vector<T>& requests)
+{
+    std::unordered_map<T, std::vector<uint64_t>> ref_times;
+
+    for (uint64_t i = 0; i < requests.size(); ++i)
+    {
+        auto&& req = requests[i];
+        if (ref_times.find(req) != ref_times.end())
+        {
+            ref_times[req].push_back(i);
+        }
+        else
+        {
+            ref_times.insert({req, std::vector<uint64_t>{i}});
+        }
+    }
+
+    return ref_times;
 }
 
 } // end namespace cache
