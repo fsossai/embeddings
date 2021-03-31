@@ -11,89 +11,10 @@
 #include <unordered_map>
 #include <unordered_set>
 
+#include "fixed_size_heap.hpp"
 #include "rank_tree.hpp"
 
 namespace cache {
-
-
-template<typename T>
-void swap(pair<T, int>& a, pair<T, int>& b)
-{
-    pair<T, int> temp = a;
-    a = b;
-    b = temp;
-}
-  
-// Returns the index of the parent node
-inline int parent(int i)
-{
-    return (i - 1) / 2;
-}
-  
-// Returns the index of the left child node
-inline int left(int i)
-{
-    return 2 * i + 1;
-}
-  
-// Returns the index of the right child node
-inline int right(int i)
-{
-    return 2 * i + 2;
-}
-  
-// Self made heap tp Rearranges
-//  the nodes in order to maintain the heap property
-template<typename T>
-void heapify(vector<pair<T, int> >& v, 
-             unordered_map<T, int>& m, int i, int n)
-{
-    int l = left(i), r = right(i), minim;
-    if (l < n)
-        minim = ((v[i].second < v[l].second) ? i : l);
-    else
-        minim = i;
-    if (r < n)
-        minim = ((v[minim].second < v[r].second) ? minim : r);
-    if (minim != i) {
-        m[v[minim].first] = i;
-        m[v[i].first] = minim;
-        swap(v[minim], v[i]);
-        heapify(v, m, minim, n);
-    }
-}
-template<typename T>
-void insert(vector<pair<T, int>>& v, 
-            unordered_map<T, int>& m, T value, int& n)
-{
-       
-    if (n == v.size()) {
-        m.erase(v[0].first);
-        v[0] = v[--n];
-        heapify(v, m, 0, n);
-    }
-    v[n++] = make_pair(value, 1);
-    m.insert(make_pair(value, n - 1));
-    int i = n - 1;
-  
-    // Insert a node in the heap by swapping elements
-    while (i && v[parent(i)].second > v[i].second) {
-        m[v[i].first] = parent(i);
-        m[v[parent(i)].first] = i;
-        swap(v[i], v[parent(i)]);
-        i = parent(i);
-    }
-}
-  
-// Function to Increment the frequency 
-// of a node and rearranges the heap
-template<typename T>
-void increment(vector<pair<T, int> >& v, 
-               unordered_map<T, int>& m, int i, int n)
-{
-    ++v[i].second;
-    heapify(v, m, i, n);
-}
 
 class Policy
 {
@@ -151,9 +72,6 @@ public:
     Simulator() = default;
     
     std::map<uint64_t, float> hitrates(const std::vector<T>& requests,
-        const std::vector<uint64_t>& cache_sizes);
-
-    std::map<uint64_t, float> hitrates2(const std::vector<T>& requests,
         const std::vector<uint64_t>& cache_sizes);
 
 private:
@@ -326,18 +244,18 @@ Simulator<Policy::LFU, T>::hitrates(
         }
 
         uint64_t hits = 0;
-        std::vector<pair<T, int>> cache(cache_max_size);
-        std::unordered_map<T, int> indices;
-        int current_size = 0;
+        FixedSizeHeap<T, uint64_t, std::less<uint64_t>> cache(cache_max_size);
 
         for (const auto& req : requests)
         {
-            if (indices.find(req) == indices.end())
-                insert(cache, indices, req, current_size);
+            if (cache.contains(req))
+            {
+                cache.set(req, cache.get(req) + 1);
+                ++hits;
+            }
             else
             {
-                increment(cache, indices, indices[req], current_size);
-                ++hits;
+                cache.insert(req, 1);
             }
         }
         
@@ -345,34 +263,6 @@ Simulator<Policy::LFU, T>::hitrates(
     }
 
     return hrates;
-}
-
-// This function is tailored for containers with small values,
-// where generally, the smallest positive is 1 or 2.
-template<typename ForwardIt, typename Getter>
-ForwardIt min_positive_int(
-    ForwardIt first,
-    ForwardIt last,
-    const int limit,
-    Getter g)
-{
-    int key = 1;
-    ForwardIt min_el;
-    do
-    {
-        min_el = std::find_if(first, last,
-            [&](const auto& elem)
-            { return g(elem) == key; }
-        );
-
-        if (key == limit && min_el == last)
-            return last;
-
-        ++key;
-    }
-    while (min_el == last);
-
-    return min_el;
 }
 
 } // end namespace cache
