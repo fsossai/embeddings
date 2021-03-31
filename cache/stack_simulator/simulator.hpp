@@ -235,7 +235,7 @@ Simulator<Policy::LFU, T>::hitrates(
     std::map<uint64_t, float> hrates;
     const float n_requests = static_cast<float>(requests.size());
 
-    for (const auto& cache_max_size : cache_sizes)
+    for (uint64_t cache_max_size : cache_sizes)
     {
         if (cache_max_size == 0)
         {
@@ -246,14 +246,14 @@ Simulator<Policy::LFU, T>::hitrates(
         uint64_t hits = 0;
         FixedSizeHeap<T, uint64_t, std::less<uint64_t>> cache(cache_max_size);
 
-        for (const auto& req : requests)
+        for (const T& req : requests)
         {
-            if (cache.contains(req))
+            if (cache.contains(req)) // cache hit
             {
                 cache.set(req, cache.get(req) + 1);
                 ++hits;
             }
-            else
+            else // cache miss
             {
                 cache.insert(req, 1);
             }
