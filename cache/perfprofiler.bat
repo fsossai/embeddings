@@ -5,8 +5,8 @@ python perfprofiler.py                                          ^
  stack_simulator\comparison.csv                                 ^
  --xlabel           "Ratio"                                     ^
  --ylabel           "Percentage"                                ^
- --title            "LRU/LFU comparison - Performance profile"  ^
- --output           perfprof.pdf                                ^
+ --title            "Policies comparison - Performance profile" ^
+ --output           perfprof.png                                ^
  --problem-type     max                                         ^
  --marker-type      points
 
