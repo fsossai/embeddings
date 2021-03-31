@@ -11,10 +11,12 @@ std::vector<uint64_t> get_sizes(
 void export_csv(
     const std::vector<std::map<std::pair<uint64_t, float>, float>>& hitrates_LRU,
     const std::vector<std::map<uint64_t, float>>& hitrates_LFU,
+    const std::vector<std::map<uint64_t, float>>& hitrates_OPT,
     const std::string& basename,
     const std::vector<int>& selected_columns);
 void export_perfprof(
     const std::vector<std::map<std::pair<uint64_t, float>, float>>& hitrates_LRU,
+    const std::vector<std::map<uint64_t, float>>& hitrates_OPT,
     const std::vector<std::map<uint64_t, float>>& hitrates_LFU);
 
 constexpr int OUTPUT_FP_PRECISION = 5;
@@ -37,8 +39,6 @@ int main(int argc, char** argv)
 	// These are the 8 features associated with the 8 smallest tables
 	// std::vector<int> selected_columns{19,30,26,32,39,22,38,29};
 
-	//std::sort(selected_columns.begin(), selected_columns.end());
-
 	parser_parameters_t param = {
 		.selected_columns = selected_columns,
 		.max_samples = 1,
@@ -56,6 +56,8 @@ int main(int argc, char** argv)
 	auto features = dataset.get_features();
 	std::cout << chronometer.lap() << "s" << endl;
 
+
+	/// LRU Policy
 	std::cout << "LRU: calculating hitrate curves ... " << std::flush;
 
 	std::vector<std::map<std::pair<uint64_t, float>, float>> hitrates_LRU;
@@ -71,6 +73,8 @@ int main(int argc, char** argv)
 	}
 	std::cout << chronometer.lap() << "s" << endl;
 
+
+	/// LFU Policy
 	std::cout << "LFU: calculating hitrate curves ... " << std::flush;
 
 	std::vector<std::map<uint64_t, float>> hitrates_LFU;
@@ -84,9 +88,25 @@ int main(int argc, char** argv)
 	}
 	std::cout << chronometer.lap() << "s" << endl;
 
+
+	/// OPT Policy
+	std::cout << "OPT: calculating hitrate curves ... " << std::flush;
+
+	std::vector<std::map<uint64_t, float>> hitrates_OPT;
+	hitrates_OPT.reserve(N);
+
+	cache_sizes_it = cache_sizes.begin();
+	for (const auto& f : features)
+	{
+		Simulator<Policy::OPT, std::string> simulator;
+		hitrates_OPT.push_back(simulator.hitrates(f, *(cache_sizes_it++)));
+	}
+	std::cout << chronometer.lap() << "s" << endl;
+
 	std::cout << "Exporting to CSV files ... " << std::flush;
-	export_csv(hitrates_LRU, hitrates_LFU, "hitrates_f", selected_columns);
-	export_perfprof(hitrates_LRU, hitrates_LFU);
+	export_csv(hitrates_LRU, hitrates_LFU, hitrates_OPT,
+		"hitrates_f", selected_columns);
+	export_perfprof(hitrates_LRU, hitrates_LFU, hitrates_OPT);
 	std::cout << chronometer.lap() << "s" << endl;
 
 	std::cout << "Total time: " << chronometer.elapsed() << endl;
@@ -133,6 +153,7 @@ std::vector<uint64_t> get_sizes(
 void export_csv(
     const std::vector<std::map<std::pair<uint64_t, float>, float>>& hitrates_LRU,
     const std::vector<std::map<uint64_t, float>>& hitrates_LFU,
+    const std::vector<std::map<uint64_t, float>>& hitrates_OPT,
     const std::string& basename,
     const std::vector<int>& selected_columns)
 {
@@ -144,14 +165,18 @@ void export_csv(
             basename + std::to_string(*(column_it++)) + ".csv";
 		std::ofstream file(name, std::ofstream::binary);
 		file.precision(OUTPUT_FP_PRECISION);
-		file << "cache_size,cache_size_relative,hitrate_LRU,hitrate_LFU\n";
+		file << "cache_size,cache_size_relative,";
+		file << "hitrate_LRU,hitrate_LFU,hitrate_OPT\n";
 
 		auto LFU_it = hitrates_LFU[i].begin();
+		auto OPT_it = hitrates_OPT[i].begin();
 		for (const auto& [key, h_LRU] : hitrates_LRU[i])
 		{
 			const auto [cs, cs_rel] = key;
-			const auto [_, h_LFU] = *(LFU_it++);
-			file << cs << ',' << cs_rel << ',' << h_LRU << ',' << h_LFU << '\n';
+			const auto [_ignore1, h_LFU] = *(LFU_it++);
+			const auto [_ignore2, h_OPT] = *(OPT_it++);
+			file << cs << ',' << cs_rel << ',';
+			file << h_LRU << ',' << h_LFU << ',' << h_OPT << '\n';
 		}
 		
 		file << endl;
@@ -162,21 +187,25 @@ void export_csv(
 
 void export_perfprof(
     const std::vector<std::map<std::pair<uint64_t, float>, float>>& hitrates_LRU,
-    const std::vector<std::map<uint64_t, float>>& hitrates_LFU)
+    const std::vector<std::map<uint64_t, float>>& hitrates_LFU,
+    const std::vector<std::map<uint64_t, float>>& hitrates_OPT)
 {
 	const int N = hitrates_LRU.size();
 	std::ofstream file("comparison.csv", std::ofstream::binary);
 	file.precision(OUTPUT_FP_PRECISION);
-	file << "2,hitrate_LRU,hitrate_LFU\n";
+	file << "3,hitrate_LRU,hitrate_LFU,hitrate_OPT\n";
 
 	int counter = 1;
 	for (int i = 0; i<N; i++)
 	{
 		auto LFU_it = hitrates_LFU[i].begin();
+		auto OPT_it = hitrates_OPT[i].begin();
 		for (const auto& [key, h_LRU] : hitrates_LRU[i])
 		{
-			const auto [_, h_LFU] = *(LFU_it++);
-			file << counter++ << ',' << h_LRU << ',' << h_LFU << '\n';
+			const auto [_ignore1, h_LFU] = *(LFU_it++);
+			const auto [_ignore2, h_OPT] = *(OPT_it++);
+			file << counter++ << ',';
+			file << h_LRU << ',' << h_LFU << ',' << h_OPT << '\n';
 		}
 		
 	}
