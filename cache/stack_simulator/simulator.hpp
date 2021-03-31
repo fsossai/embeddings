@@ -88,9 +88,6 @@ public:
 
     std::map<uint64_t, float> hitrates(const std::vector<T>& requests,
         const std::vector<uint64_t>& cache_sizes);
-    
-    std::map<uint64_t, float> hitrates2(const std::vector<T>& requests,
-        const std::vector<uint64_t>& cache_sizes);
 
 private:
     std::unordered_map<T, std::vector<uint64_t>> next_ref_times(
@@ -316,40 +313,6 @@ Simulator<Policy::OPT, T>::hitrates(
             {
                 cache.insert(req, req_next_access);
             }
-        }
-        
-        hrates[cache_max_size] = static_cast<float>(hits) / n_requests;
-    }
-
-    return hrates;
-}
-
-template<typename T>
-std::map<uint64_t, float>
-Simulator<Policy::OPT, T>::hitrates2(
-    const std::vector<T>& requests,
-    const std::vector<uint64_t>& cache_sizes)
-{
-    std::map<uint64_t, float> hrates;
-    const float n_requests = static_cast<float>(requests.size());
-
-    for (uint64_t cache_max_size : cache_sizes)
-    {
-        if (cache_max_size == 0)
-        {
-            hrates[0] = 0.0f;
-            continue;
-        }
-
-        uint64_t hits = 0;
-        FixedSizeHeap<T, uint64_t, std::greater<uint64_t>> cache(cache_max_size);
-        std::unordered_map<T, int> next_ref_time_index;
-        auto next = next_ref_times(requests);
-
-        for (const T& req : requests)
-        {
-            auto req_next_access = next[req][++next_ref_time_index[req]];
-            std::cout << req << ", " << req_next_access << '\n';
         }
         
         hrates[cache_max_size] = static_cast<float>(hits) / n_requests;
