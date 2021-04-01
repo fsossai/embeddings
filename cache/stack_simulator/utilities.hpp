@@ -4,22 +4,27 @@
 #include <algorithm>
 #include <fstream>
 #include <map>
+#include <sstream>
 #include <string>
 #include <vector>
 
 std::vector<uint64_t> get_sizes(
 	std::map<std::pair<uint64_t, float>, float> hitrates);
+
 void export_csv(
     const std::vector<std::map<std::pair<uint64_t, float>, float>>& hitrates_LRU,
     const std::vector<std::map<uint64_t, float>>& hitrates_LFU,
     const std::vector<std::map<uint64_t, float>>& hitrates_OPT,
     const std::string& basename,
     const std::vector<int>& selected_columns);
+
 void export_perfprof(
     const std::string& output_name,
     const std::vector<std::map<std::pair<uint64_t, float>, float>>& hitrates_LRU,
     const std::vector<std::map<uint64_t, float>>& hitrates_LFU,
     const std::vector<std::map<uint64_t, float>>& hitrates_OPT);
+
+std::vector<float> get_comma_separated_floats(const std::string& s);
 
 constexpr int OUTPUT_FP_PRECISION = 5;
 
@@ -69,7 +74,6 @@ void export_csv(
 			file << h_LRU << ',' << h_LFU << ',' << h_OPT << '\n';
 		}
 		
-		file << endl;
 		file.flush();
 		file.close();
 	}
@@ -99,6 +103,24 @@ void export_perfprof(
 		
 	}
 	file.close();
+}
+
+
+std::vector<float> get_comma_separated_floats(const std::string& input)
+{
+    std::vector<float> nums;
+    std::stringstream ss(input);
+
+    do
+    {
+        float num;
+        ss >> num;
+        ss.ignore();
+        nums.push_back(num);
+    }
+    while (!ss.eof());
+
+    return nums;
 }
 
 #endif // #ifndef __UTILITIES_HPP__
