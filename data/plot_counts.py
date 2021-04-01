@@ -4,7 +4,8 @@ from time import time
 import argparse
 
 
-def setup_histogram(nuniques, highlighted, highlight, ticks, linear_plot, top):
+def setup_histogram(nuniques, highlighted, highlight, ticks, linear_plot,
+    top, use_percentage=False):
     fig, ax = plt.subplots()
     if highlight == 1:
         h_label = f'Fraction of IDs appearing only once'
@@ -17,7 +18,11 @@ def setup_histogram(nuniques, highlighted, highlight, ticks, linear_plot, top):
     highlighted = highlighted[:top]
     ticks = ticks[:top]
     base = [n - h for n, h in zip(nuniques, highlighted)]
+    if use_percentage:
+        base = [x / y for x, y in zip(base, nuniques)]
+        highlighted = [x / y for x, y in zip(highlighted, nuniques)]
     nsel = len(base)
+
     ax.bar(range(nsel), base,
         log=not linear_plot)
     ax.bar(range(nsel), highlighted,
@@ -25,7 +30,14 @@ def setup_histogram(nuniques, highlighted, highlight, ticks, linear_plot, top):
     
     plt.xticks(range(nsel), ticks, rotation=70)
     plt.xlabel('Feature index')
-    plt.ylabel('Number of unique IDs')
+    if use_percentage:
+        plt.ylabel('Percentage of unique IDs')
+        plt.yticks(
+            [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1],
+            [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+        ) # np.arange no thanks
+    else:
+        plt.ylabel('Number of unique IDs')
     plt.title("Cardinality of the features' domain" +
         f" (Top {top})" if top is not None else "")
 
@@ -42,7 +54,8 @@ if __name__ == '__main__':
     parser.add_argument('--highlight', '-H', type=int, default=0)
     parser.add_argument('--linear-plot', '-l', action='store_true', default=False)
     parser.add_argument('--reverse-order', '-r', action='store_true', default=False)
-    parser.add_argument('--out-name', '-o', type=str, default=None, required=False)
+    parser.add_argument('--out-name', '-o', type=str, default=None)
+    parser.add_argument('--use-percentage', '-p', action='store_true', default=False)
     
     args = parser.parse_args()
 
@@ -62,7 +75,8 @@ if __name__ == '__main__':
             highlight=1,
             ticks=list(reversed(df['table'])),
             linear_plot=args.linear_plot,
-            top=args.top
+            top=args.top,
+            use_percentage=args.use_percentage
         )
     else:
         setup_histogram(
@@ -71,7 +85,8 @@ if __name__ == '__main__':
             highlight=1,
             ticks=df['table'],
             linear_plot=args.linear_plot,
-            top=args.top
+            top=args.top,
+            use_percentage=args.use_percentage
         )
     
     if args.out_name is not None:
@@ -79,4 +94,4 @@ if __name__ == '__main__':
     plt.show()
 
 # Command line example:
-# python plot_counts.py -l -t 10 -H 1 -r counts.csv
+# python plot_counts.py -l -t 10 -H 1 -r -p counts.csv
