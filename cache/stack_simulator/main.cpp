@@ -28,9 +28,9 @@ int main(int argc, char** argv)
 	Chronometer chronometer;
 	const int N = 8;
 	const int SPARSE_OFFSET = 14;
-	const std::vector<float> cache_sizes_percentage{0.01, 0,.02, 0.05, 0.10, 0.15, 0.20, 0.25 };
+	const std::vector<float> cache_sizes_percentage{0.01, 0.02, 0.05, 0.10, 0.15, 0.20, 0.25 };
 
-	std::vector<int> selected_columns{33,14,35,23,34,24,36,25};
+	std::vector<int> selected_columns{33, 14, 35, 23, 34, 24, 36, 25};
 
 	parser_parameters_t param = {
 		.selected_columns = selected_columns,
