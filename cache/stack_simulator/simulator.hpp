@@ -101,10 +101,10 @@ private:
 template<typename T>
 uint64_t Simulator<Policy::LRU, T>::reference(const T& key)
 {
-    if (_umap.count(key) == 0)
+    if (_umap.find(key) == _umap.end())
     {
 		_umap[key] = _rtree.Insert(key);
-		return UINT64_MAX;
+		return std::numeric_limits<uint64_t>::max();
     }
     auto node = _umap[key];
     uint64_t rank = node->Rank();
