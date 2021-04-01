@@ -9,6 +9,7 @@ template<typename T>
 RankTreeNode<T>::RankTreeNode(T name) {
 	_name = name;
 	_weight = 0;
+	_leftWeight = 0;
 	_priority = rand();
 	_left = nullptr;
 	_right = nullptr;
@@ -218,24 +219,24 @@ uint64_t RankTreeNode<T>::leftChildRank(uint64_t rank) {
 template<typename T>
 uint64_t RankTreeNode<T>::rightChildRank(uint64_t rank) {
 	if (root()) {
-		return 1 + rank + leftWeight();
+		return 1 + rank + _leftWeight;
 	} else if (leftChild()) {
-		return _parent->leftChildRank(1 + rank + leftWeight());
+		return _parent->leftChildRank(1 + rank + _leftWeight);
 	} else {
 		assert(rightChild());
-		return _parent->rightChildRank(1 + rank + leftWeight());
+		return _parent->rightChildRank(1 + rank + _leftWeight);
 	}
 }
 
 template<typename T>
 uint64_t RankTreeNode<T>::Rank() {
 	if (root()) {
-		return leftWeight();
+		return _leftWeight;
 	} else if (leftChild()) {
-		return _parent->leftChildRank(leftWeight());
+		return _parent->leftChildRank(_leftWeight);
 	} else {
 		assert(rightChild());
-		return _parent->rightChildRank(leftWeight());
+		return _parent->rightChildRank(_leftWeight);
 	}
 }
 
@@ -322,7 +323,9 @@ uint64_t RankTreeNode<T>::rightWeight() {
 
 template<typename T>
 void RankTreeNode<T>::fixWeights() {
-	_weight = 1 + leftWeight() + rightWeight();
+	_leftWeight = leftWeight();
+	_weight = 1 + _leftWeight + rightWeight();
+
 	if (_parent != nullptr) {
 		_parent->fixWeights();
 	}
@@ -382,6 +385,7 @@ void RankTree<T>::Remove(RankTreeNode<T>* node) {
 		_root = newRoot;
 	}
 	if (_root == node) {
+		delete node;
 		_root = nullptr;
 	} else {
 		node->unlink();

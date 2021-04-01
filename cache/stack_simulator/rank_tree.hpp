@@ -61,6 +61,7 @@ template<typename T>
   private:
   	T _name;
   	uint64_t _weight;
+	uint64_t _leftWeight;
   	int _priority;
 
   	RankTreeNode<T>* _left;
