@@ -45,6 +45,7 @@ parser.add_option('-o','--output', action="store", dest="output", default="",
                     help="Output file name. The plot can be saved in different formats.")
 parser.add_option('-p','--problem-type', action="store", dest="ptype", default="min",
                     help="[max|min|maxr|minr]. Maximization or Minimization type of problem. "
+                    "The 'r' version reverses the x axis of the plot. "
                     "Default: min.")
 options, args = parser.parse_args()
 
