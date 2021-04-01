@@ -5,37 +5,7 @@ from time import time
 import sys; sys.path.append('..')
 import bigdatatools
 from bigdatatools import ChunkStreaming
-
-
-def setup_histogram(nunique, highlighted, highlight, ticks, linear_plot, top):
-    fig, ax = plt.subplots()
-    if highlight == 1:
-        h_label = f'Fraction of IDs appearing only once'
-    elif highlight > 1:
-        h_label = f'Fraction of IDs appearing no more than {highlight} times'
-    else:
-        h_label = None
-
-    nunique = nunique[:top]
-    highlighted = highlighted[:top]
-    ticks = ticks[:top]
-    base = [n - h for n, h in zip(nunique, highlighted)]
-    nsel = len(base)
-    ax.bar(range(nsel), base,
-        log=not linear_plot)
-    ax.bar(range(nsel), highlighted,
-        log=not linear_plot, bottom=base, label=h_label)
-    
-    plt.xticks(range(nsel), ticks, rotation=70)
-    plt.xlabel('Feature index')
-    plt.ylabel('Number of unique IDs')
-    plt.title("Cardinality of the features' domain" +
-        f" (Top {top})" if top is not None else "")
-
-    plt.tight_layout()
-    if highlight > 0:
-        plt.legend()
-
+from plot_counts import setup_histogram
 
 if __name__ == '__main__':
     parser = bigdatatools.default_parser()
@@ -47,27 +17,11 @@ if __name__ == '__main__':
     parser.add_argument('--linear-plot', '-l', action='store_true', default=False)
     parser.add_argument('--reverse-order', '-r', action='store_true', default=False)
     parser.add_argument('--out-name', '-o', type=str, default=None, required=False)
-    parser.add_argument('--input-csv-counts', '-v', type=str, default=None, required=False)
     
     args = parser.parse_args()
 
     timestamp = str(time())
-    out_name = args.out_name or 'counts_{timestamp}'
-
-    # is counts data available? (i.e. specified by user)
-    if args.input_csv_counts is not None:
-        df = pd.read_csv(args.input_csv_counts)
-        setup_histogram(
-            nunique=df['nunique'].to_list(),
-            highlighted=df['highlighted'].to_list(),
-            highlight=1,
-            ticks=df['table'],
-            linear_plot=args.linear_plot,
-            top=args.top
-        )
-        plt.savefig(out_name + '.png')
-        plt.show()
-        sys.exit(0)
+    out_name = args.out_name or f'counts_{timestamp}'
 
     column_selection = bigdatatools.get_range_list(args.column_selection)
     pandas_kwargs = {
@@ -121,7 +75,7 @@ if __name__ == '__main__':
     xy = list(zip(*cardinalities))
 
     setup_histogram(
-        nunique=xy[1],
+        nuniques=xy[1],
         highlighted=xy[2],
         highlight=args.highlight,
         ticks=xy[0],
@@ -133,4 +87,3 @@ if __name__ == '__main__':
 
 # Command line example:
 # python count_embeddings.py -f *.gz -z -c 1000000 -n 1 -S 14-39 -l -t 10 -H 1
-# python count_embeddings.py -v counts.csv -t 10
