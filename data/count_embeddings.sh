@@ -7,5 +7,5 @@ python3 count_embeddings.py                     \
     --column-selection 14-39                    \
     --linear-plot                               \
     --highlight 1                               \
-    --out-name counts_{timestamp}               \
+    --out-name counts_${timestamp}              \
     > count_${timestamp}.txt &

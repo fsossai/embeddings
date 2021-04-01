@@ -10,7 +10,7 @@
 #
 # Usage: perfprofiler.py [options] <input>
 
-import csv
+import pandas as pd
 import sys
 import numpy as np
 import matplotlib
@@ -20,10 +20,14 @@ import optparse
 
 # Adding avaible options to the parser
 
-parser = optparse.OptionParser("perfprofiler.py <input> [options]",
-    description="<input> is a file in CSV format. The first row must contain the number of \
-actual data columns to be considered. Example: '2, column1, column2'. The following lines \
-will contain the name of the run followed by two comma separated values, like 'inst1, 123.4, 567.8'")
+parser = optparse.OptionParser(
+    "perfprofiler.py <input> [options]",
+    description=
+    "<input> is a file in CSV format. The first row must contain the number "
+    "of actual data columns to be considered. Example: '2, column1, column2'. "
+    "The following lines will contain the name of the run followed by two "
+    "comma separated values, like 'inst1, 123.4, 567.8'"
+)
 
 parser.add_option('-x','--xlabel', action="store", dest="xlabel", default="Ratio",
                     help="Set a label for the X axis.")
@@ -35,12 +39,12 @@ parser.add_option('-m','--marker-type', action="store", dest="markertype", defau
                     help="[letters|symbols|points|none]. Set a marker type to easily distinguish lines. "
                     "Default: points.")
 parser.add_option('-l','--limit', action="store", dest="limit", default="",
-                    help="Set a x-axis' right-most (resp. left-most) limit of a minimization \
-                    (resp. maximization) problem.")
+                    help="Set a x-axis' right-most (resp. left-most) limit of a minimization "
+                    "(resp. maximization) problem.")
 parser.add_option('-o','--output', action="store", dest="output", default="",
                     help="Output file name. The plot can be saved in different formats.")
 parser.add_option('-p','--problem-type', action="store", dest="ptype", default="min",
-                    help="[max|min]. Maximization or Minimization type of problem. "
+                    help="[max|min|maxr|minr]. Maximization or Minimization type of problem. "
                     "Default: min.")
 options, args = parser.parse_args()
 
@@ -62,39 +66,39 @@ elif options.markertype == 'none':
 else:
     sys.exit("ERROR: invalid marker type. Available: [letters|symbols|points|none].")
 
-if options.ptype == 'max':
+if options.ptype in ['max', 'maxr']:
     get_best = np.max
-elif options.ptype == 'min':
+    reverse = True
+elif options.ptype == ['min', 'minr']:
     get_best = np.min
+    reverse = False
 else:
-    sys.exit("ERROR: invalid problem type: Available [max|min].")
+    sys.exit("ERROR: invalid problem type: Available [max|min|maxr|minr].")
 
 # Reading CSV input 
-
-with open(args[0], newline='') as f:
-    table = list(csv.reader(f))
-    methods = int(table[0][0])
-
+data = pd.read_csv(args[0])
 
 # Computing the so called 'performance ratios'
-
-runs = len(table) - 1
-all = np.zeros((runs,methods))
-for index,row in enumerate(table[1:]):
-    vals = np.array([float(i) for i in row[1:methods+1] if (len(i) > 0)])
-    vals = vals / get_best(vals)
-    all[index, :] = vals
-
+best = get_best(data.values, axis=1)
+y = np.arange(1, len(data) + 1) / len(data)
 
 # Creating every line in the plot iteratively
+for name, results in data.iteritems():
+    # calculating ratios for 'name'
+    if options.ptype in ['max', 'min']:
+        ratios = results / best
+    elif options.ptype in ['maxr', 'minr']:
+        ratios = best / results
 
-reverse=True if options.ptype == 'max' else False
-for i in range(0, methods):
+    x = sorted(ratios, reverse=reverse)
+
+    # selecting a random marker
     selected = np.random.randint(0, len(markers))
-    plt.step(sorted(all[:,i], reverse=reverse), np.arange(1, runs + 1) / runs,
-            where='post',
-            marker=markers[selected],
-            label=table[0][i+1])
+
+    # creating step plot
+    plt.step(x, y, where='post', marker=markers[selected], label=name)
+
+    # removing the marker just used
     if len(markers) > 1:
         del markers[selected]
 
@@ -105,9 +109,9 @@ plt.grid(True)
 plt.xlabel(options.xlabel)
 plt.ylabel(options.ylabel)
 plt.yticks(
-    [0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1],
-    [0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1]
-)
+    [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1],
+    [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+) # np.arange(0, 1, 0.1) gives slightly less precise floats
 plt.title(options.title)
 plt.legend()
 if len(options.limit) > 0:

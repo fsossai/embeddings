@@ -193,9 +193,8 @@ void export_perfprof(
 	const int N = hitrates_LRU.size();
 	std::ofstream file("comparison.csv", std::ofstream::binary);
 	file.precision(OUTPUT_FP_PRECISION);
-	file << "3,LRU,LFU,OPT\n";
+	file << "LRU,LFU,OPT\n";
 
-	int counter = 1;
 	for (int i = 0; i<N; i++)
 	{
 		auto LFU_it = hitrates_LFU[i].begin();
@@ -204,7 +203,6 @@ void export_perfprof(
 		{
 			const auto [_ignore1, h_LFU] = *(LFU_it++);
 			const auto [_ignore2, h_OPT] = *(OPT_it++);
-			file << counter++ << ',';
 			file << h_LRU << ',' << h_LFU << ',' << h_OPT << '\n';
 		}
 		
