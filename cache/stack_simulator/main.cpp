@@ -6,7 +6,7 @@
 #include "simulator.hpp"
 #include "utilities.hpp"
 
-bool set_cmdline_args(int argc, char **argv, parser_parameters_t& param);
+bool set_cmdline_args(int argc, char **argv, parser_parameters& param);
 
 int main(int argc, char** argv)
 {
@@ -30,7 +30,7 @@ int main(int argc, char** argv)
 
 	chronometer.start();
 	std::cout << "Reading dataset ... " << std::flush;
-	ColMajorDataset dataset(param);
+	ColMajorDataset<std::string> dataset(param);
 	dataset.import();
 	auto features = dataset.get_features();
 	std::cout << chronometer.lap() << "s" << std::endl;
@@ -93,7 +93,7 @@ int main(int argc, char** argv)
 	return 0;
 }
 
-bool set_cmdline_args(int argc, char **argv, parser_parameters_t& param)
+bool set_cmdline_args(int argc, char **argv, parser_parameters& param)
 {
 	if (argc == 1)
 	{
