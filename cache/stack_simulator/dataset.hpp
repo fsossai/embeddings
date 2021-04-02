@@ -13,10 +13,10 @@
 typedef struct parser_parameters
 {
 	std::vector<int> selected_columns;
-	int max_samples;
-	char separator;
+	int max_samples = 0;
+	char separator = '\t';
 	std::string filename;
-	int sparse_feat_offset;
+	int sparse_feat_offset = std::numeric_limits<int>::max();
 } parser_parameters_t;
 
 
@@ -30,6 +30,7 @@ protected:
 	bool check_file();
 public:
 	Dataset(const parser_parameters_t& param);
+	bool _all_cols = false;
 };
 
 
@@ -67,7 +68,9 @@ Dataset<N>::Dataset(const parser_parameters_t& param)
     : _param(param),
     _ready(false)
 {
-    if (N != param.selected_columns.size())
+	if (param.selected_columns.size() == 0)
+		_all_cols = true;
+    else if (N != param.selected_columns.size())
         throw std::logic_error("Inconsistent number of features.");
 }
 
@@ -75,6 +78,8 @@ Dataset<N>::Dataset(const parser_parameters_t& param)
 template<std::size_t N>
 bool Dataset<N>::check_index(const int index)
 {
+	if (_all_cols)
+		return true;
 	return std::find(
 			_param.selected_columns.begin(),
 			_param.selected_columns.end(),
@@ -117,7 +122,13 @@ template<std::size_t N>
 bool RowMajorDataset<N>::import()
 {
 	int row_counter = 0;
-    const std::size_t sample_size = this->_param.selected_columns.size();
+	std::size_t sample_size;
+	
+	if (this->_all_cols)
+		sample_size = N;
+	else
+		sample_size = this->_param.selected_columns.size();
+
 	const int max = this->_param.max_samples;
 	const char separator = this->_param.separator;
 	std::fstream file(this->_param.filename);
