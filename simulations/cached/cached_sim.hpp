@@ -14,6 +14,7 @@ struct Results
     matrix_t lookup;
     matrix_t request;
     std::vector<int> fanout;
+    float avg_fanout;
 };
 
 
@@ -42,6 +43,7 @@ Results cached_simulation(
     const int D = queries[0].size();
     std::vector<int> lookups(D);
     std::vector<bool> here(D);
+    float cumulative_fanout = 0.0f;
 
     for (const auto& query : queries)
     {
@@ -63,20 +65,23 @@ Results cached_simulation(
         int fanout = std::unordered_set<int>(
             lookups.begin(), lookups.end()).size();
 
+        cumulative_fanout += fanout;
         results.fanout.push_back(fanout);
     }
 
+    results.avg_fanout = cumulative_fanout / queries.size();
+    
     return results;
 }
 
 template<>
-class LookupProtocol<Sharding::Random, int>
+class LookupProtocol<Sharding::Random, uint32_t>
 {
 public:
     LookupProtocol(int n_processors) : P(n_processors)
     { }
 
-    int lookup(int id)
+    int lookup(uint32_t id)
     {
         return id % P;
     }
@@ -85,12 +90,12 @@ public:
 };
 
 template<>
-class LookupProtocol<Sharding::X, int>
+class LookupProtocol<Sharding::X, uint32_t>
 {
 public:
     LookupProtocol() = default;
 
-    int lookup(int id) { return 0; }
+    int lookup(uint32_t id) { return 0; }
 };
 
 

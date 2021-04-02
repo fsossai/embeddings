@@ -20,7 +20,7 @@ int main(int argc, char **argv)
 
     std::cout << "Reading dataset ... " << std::flush;
     chronometer.start();
-	RowMajorDataset<int> dataset(param);
+	RowMajorDataset<uint32_t> dataset(param);
 	dataset.import();
 	auto queries = dataset.get_samples();
 	std::cout << chronometer.lap() << "s" << std::endl;
@@ -28,16 +28,10 @@ int main(int argc, char **argv)
     /// Starting simulation
     chronometer.start();
     int P = 1;
-    LookupProtocol<Sharding::Random, int> protocol(P);
+    LookupProtocol<Sharding::Random, uint32_t> protocol(P);
     Results results = cached_simulation(queries, P, protocol);
-    std::cout << "Fanout: ";
-    for (auto f : results.fanout)
-    {
-        std::cout << f << ' ';
-    }
-    std::cout << '\n';
+    std::cout << "Average fanout: " << results.avg_fanout << '\n';
 	std::cout << chronometer.lap() << "s" << std::endl;
-
 
     std::cout << "Total time: " << chronometer.elapsed() << std::endl;
 
