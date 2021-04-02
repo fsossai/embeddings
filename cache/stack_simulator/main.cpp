@@ -20,7 +20,7 @@ int main(int argc, char** argv)
 	std::vector<int> selected_columns{33, 14, 35, 23, 34, 24, 36, 25};
 	const int N = selected_columns.size();
 
-	parser_parameters_t param = {
+	parser_parameters param = {
 		.selected_columns = selected_columns,
 		.separator = '\t'
 	};

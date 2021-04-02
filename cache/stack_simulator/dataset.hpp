@@ -116,8 +116,8 @@ RowMajorDataset<T>::get_samples()
 }
 
 
-template<typename T>
-bool RowMajorDataset<T>::import()
+template<>
+bool RowMajorDataset<std::string>::import()
 {
 	int row_counter = 0;
 
@@ -153,6 +153,54 @@ bool RowMajorDataset<T>::import()
 		if (this->check_index(column))
 		{
 			sample.push_back(std::move(
+                current_sample.substr(pos_start, pos_end - pos_start)
+            ));
+		}
+		_samples.push_back(std::move(sample));
+		row_counter++;
+	}
+    this->_ready = true;
+	return true;
+}
+
+
+template<>
+bool RowMajorDataset<int>::import()
+{
+	int row_counter = 0;
+
+	const int max = this->_param.max_samples;
+	const char separator = this->_param.separator;
+	std::fstream file(this->_param.filename);
+	std::string current_sample;
+    _samples.clear();
+
+	if (!this->check_file())
+		return false;
+
+	while (row_counter < max && std::getline(file, current_sample))
+	{
+		int pos_start = 0, pos_end = 0;
+		int column = 0;
+		std::vector<int> sample;
+		
+		pos_end = current_sample.find(separator, pos_start);
+		
+		while (pos_end != std::string::npos)
+		{
+			if (this->check_index(column))
+			{
+				sample.push_back(std::stoi(
+                    current_sample.substr(pos_start, pos_end - pos_start)
+				));
+			}
+			pos_start = pos_end + 1;
+			pos_end = current_sample.find(separator, pos_start);
+			column++;
+		}
+		if (this->check_index(column))
+		{
+			sample.push_back(std::stoi(
                 current_sample.substr(pos_start, pos_end - pos_start)
             ));
 		}
