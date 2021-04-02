@@ -178,11 +178,24 @@ bool RowMajorDataset<uint32_t>::import()
 	if (!this->check_file())
 		return false;
 
+	std::size_t sample_size = this->_param.selected_columns.size();
+	if (sample_size == 0) // all columns have to be processed
+	{
+		// getting first sample in order to guess the number of columns
+		std::getline(file, current_sample);
+		sample_size = std::count(
+			current_sample.begin(),
+			current_sample.end(),
+			this->_param.separator) + 1;
+		file.seekg(0, std::ios_base::beg);
+	}
+
 	while (row_counter < max && std::getline(file, current_sample))
 	{
 		int pos_start = 0, pos_end = 0;
 		int column = 0;
 		std::vector<uint32_t> sample;
+		sample.reserve(sample_size);
 		
 		pos_end = current_sample.find(separator, pos_start);
 		
