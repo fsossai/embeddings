@@ -1,0 +1,26 @@
+# ignoring all files
+/**/*.*
+
+# except the following extensions
+#   python scripts
+!/**/*.py
+#   latex documents
+!/**/*.tex
+#   windows/linux scripts
+!/**/*.bat
+!/**/*.cmd
+!/**/*.sh
+#   C++ code
+!/**/*.cpp
+!/**/*.hpp
+#   Makefiles
+!/**/Makefile
+#   Python requirements
+!/requirements.txt
+#   Markdown 
+!/**/*.md
+#   gitignore
+!/.gitignore
+
+# excluding code starting with _
+/**/_*

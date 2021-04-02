@@ -15,7 +15,10 @@ int main(int argc, char** argv)
 	Chronometer chronometer;
 	const int N = 8;
 	const int SPARSE_OFFSET = 14;
-	const std::vector<float> cache_sizes_percentage{0.01, 0.02, 0.05, 0.10, 0.15, 0.20, 0.25 };
+
+
+	const std::vector<float> cache_sizes_percentage{
+		0.01, 0.02, 0.05, 0.10, 0.15, 0.20, 0.25 };
 
 	std::vector<int> selected_columns{33, 14, 35, 23, 34, 24, 36, 25};
 
@@ -34,7 +37,7 @@ int main(int argc, char** argv)
 	ColMajorDataset<N> dataset(param);
 	dataset.import();
 	auto features = dataset.get_features();
-	std::cout << chronometer.lap() << "s" << endl;
+	std::cout << chronometer.lap() << "s" << std::endl;
 
 
 	/// LRU Policy
@@ -51,7 +54,7 @@ int main(int argc, char** argv)
 		hitrates_LRU.push_back(hrates);
 		cache_sizes.push_back(get_sizes(hrates));
 	}
-	std::cout << chronometer.lap() << "s" << endl;
+	std::cout << chronometer.lap() << "s" << std::endl;
 
 
 	/// LFU Policy
@@ -66,7 +69,7 @@ int main(int argc, char** argv)
 		Simulator<Policy::LFU, std::string> simulator;
 		hitrates_LFU.push_back(simulator.hitrates(f, *(cache_sizes_it++)));
 	}
-	std::cout << chronometer.lap() << "s" << endl;
+	std::cout << chronometer.lap() << "s" << std::endl;
 
 
 	/// OPT Policy
@@ -81,15 +84,15 @@ int main(int argc, char** argv)
 		Simulator<Policy::OPT, std::string> simulator;
 		hitrates_OPT.push_back(simulator.hitrates(f, *(cache_sizes_it++)));
 	}
-	std::cout << chronometer.lap() << "s" << endl;
+	std::cout << chronometer.lap() << "s" << std::endl;
 
 	std::cout << "Exporting to CSV files ... " << std::flush;
 	export_csv(hitrates_LRU, hitrates_LFU, hitrates_OPT,
 		"hitrates_f", selected_columns);
 	export_perfprof("comparison.csv", hitrates_LRU, hitrates_LFU, hitrates_OPT);
-	std::cout << chronometer.lap() << "s" << endl;
+	std::cout << chronometer.lap() << "s" << std::endl;
 
-	std::cout << "Total time: " << chronometer.elapsed() << endl;
+	std::cout << "Total time: " << chronometer.elapsed() << std::endl;
 
 	return 0;
 }
@@ -98,7 +101,7 @@ bool set_cmdline_args(int argc, char **argv, parser_parameters_t& param)
 {
 	if (argc == 1)
 	{
-		std::cout << "ERROR: specify input file" << endl;
+		std::cout << "ERROR: specify input file" << std::endl;
 		return false;
 	}
 

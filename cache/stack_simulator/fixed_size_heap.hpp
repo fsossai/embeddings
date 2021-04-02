@@ -1,3 +1,5 @@
+#include <algorithm>
+#include <cstdint>
 #include <vector>
 #include <unordered_map>
 
@@ -15,6 +17,8 @@ public:
     void change(const Tkey& key, Changer changer);
 
     uint64_t current_size();
+
+    bool is_full();
 
     void swap(std::pair<Tkey, Tval>& a, std::pair<Tkey, Tval>& b);
 
@@ -130,6 +134,13 @@ template<typename Tkey, typename Tval, typename Compare>
 uint64_t FixedSizeHeap<Tkey, Tval, Compare>::current_size()
 {
     return _current_size;
+}
+
+
+template<typename Tkey, typename Tval, typename Compare>
+bool FixedSizeHeap<Tkey, Tval, Compare>::is_full()
+{
+    return _current_size == _max_size;
 }
 
 template<typename Tkey, typename Tval, typename Compare>
