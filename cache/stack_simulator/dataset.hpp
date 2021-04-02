@@ -165,7 +165,7 @@ bool RowMajorDataset<std::string>::import()
 
 
 template<>
-bool RowMajorDataset<int>::import()
+bool RowMajorDataset<uint32_t>::import()
 {
 	int row_counter = 0;
 
@@ -182,7 +182,7 @@ bool RowMajorDataset<int>::import()
 	{
 		int pos_start = 0, pos_end = 0;
 		int column = 0;
-		std::vector<int> sample;
+		std::vector<uint32_t> sample;
 		
 		pos_end = current_sample.find(separator, pos_start);
 		
@@ -190,9 +190,9 @@ bool RowMajorDataset<int>::import()
 		{
 			if (this->check_index(column))
 			{
-				sample.push_back(std::stoi(
-                    current_sample.substr(pos_start, pos_end - pos_start)
-				));
+				sample.push_back(static_cast<uint32_t>(
+					std::stoul(current_sample.substr(pos_start, pos_end - pos_start)
+				)));
 			}
 			pos_start = pos_end + 1;
 			pos_end = current_sample.find(separator, pos_start);
@@ -200,9 +200,9 @@ bool RowMajorDataset<int>::import()
 		}
 		if (this->check_index(column))
 		{
-			sample.push_back(std::stoi(
-                current_sample.substr(pos_start, pos_end - pos_start)
-            ));
+			sample.push_back(static_cast<uint32_t>(
+					std::stoul(current_sample.substr(pos_start, pos_end - pos_start)
+			)));
 		}
 		_samples.push_back(std::move(sample));
 		row_counter++;
