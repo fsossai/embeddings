@@ -210,7 +210,6 @@ bool ColMajorDataset::import()
 		file.seekg(0, std::ios_base::beg);
 	}
 	_features.resize(sample_size);
-	std::cout << "resize " << sample_size << '\n'; //D
 
 	while (row_counter < max && std::getline(file, current_sample))
 	{
