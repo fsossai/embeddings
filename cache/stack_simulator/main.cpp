@@ -13,20 +13,16 @@ int main(int argc, char** argv)
 	using namespace cache;
 
 	Chronometer chronometer;
-	const int N = 8;
-	const int SPARSE_OFFSET = 14;
-
 
 	const std::vector<float> cache_sizes_percentage{
 		0.01, 0.02, 0.05, 0.10, 0.15, 0.20, 0.25 };
 
 	std::vector<int> selected_columns{33, 14, 35, 23, 34, 24, 36, 25};
+	const int N = selected_columns.size();
 
 	parser_parameters_t param = {
 		.selected_columns = selected_columns,
-		.max_samples = 1,
-		.separator = '\t',
-		.filename = ""
+		.separator = '\t'
 	};
 
 	if (!set_cmdline_args(argc, argv, param))
@@ -34,7 +30,7 @@ int main(int argc, char** argv)
 
 	chronometer.start();
 	std::cout << "Reading dataset ... " << std::flush;
-	ColMajorDataset<N> dataset(param);
+	ColMajorDataset dataset(param);
 	dataset.import();
 	auto features = dataset.get_features();
 	std::cout << chronometer.lap() << "s" << std::endl;

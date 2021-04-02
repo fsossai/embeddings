@@ -20,7 +20,6 @@ typedef struct parser_parameters
 } parser_parameters_t;
 
 
-template<std::size_t N>
 class Dataset
 {
 protected:
@@ -34,27 +33,25 @@ public:
 };
 
 
-template<std::size_t N>
-class RowMajorDataset : public Dataset<N>
+class RowMajorDataset : public Dataset
 {
 private:
-	std::vector<std::array<std::string, N>> _samples;
+	std::vector<std::vector<std::string>> _samples;
 public:
 	RowMajorDataset(const parser_parameters_t& param);
-	std::vector<std::array<std::string, N>> get_samples();
+	std::vector<std::vector<std::string>> get_samples();
 	bool import();
 	void print();
 };
 
 
-template<std::size_t N>
-class ColMajorDataset : public Dataset<N>
+class ColMajorDataset : public Dataset
 {
 private:
-	std::array<std::vector<std::string>, N> _features;
+	std::vector<std::vector<std::string>> _features;
 public:
 	ColMajorDataset(const parser_parameters_t& param);
-	std::array<std::vector<std::string>, N> get_features();
+	std::vector<std::vector<std::string>> get_features();
 	bool import();
 	void print();
 };
@@ -63,20 +60,16 @@ public:
 /*** DEFINITIONS ***/
 
 
-template<std::size_t N>
-Dataset<N>::Dataset(const parser_parameters_t& param)
+Dataset::Dataset(const parser_parameters_t& param)
     : _param(param),
     _ready(false)
 {
 	if (param.selected_columns.size() == 0)
 		_all_cols = true;
-    else if (N != param.selected_columns.size())
-        throw std::logic_error("Inconsistent number of features.");
 }
 
 
-template<std::size_t N>
-bool Dataset<N>::check_index(const int index)
+bool Dataset::check_index(const int index)
 {
 	if (_all_cols)
 		return true;
@@ -88,8 +81,7 @@ bool Dataset<N>::check_index(const int index)
 }
 
 
-template<std::size_t N>
-bool Dataset<N>::check_file()
+bool Dataset::check_file()
 {
 	if (!std::filesystem::exists(_param.filename))
 	{
@@ -102,15 +94,13 @@ bool Dataset<N>::check_file()
 
 /*** RowMajorDataset ***/
 
-template<std::size_t N>
-RowMajorDataset<N>::RowMajorDataset(const parser_parameters_t& param)
-	: Dataset<N>(param)
+RowMajorDataset::RowMajorDataset(const parser_parameters_t& param)
+	: Dataset(param)
 { }
 
 
-template<std::size_t N>
-std::vector<std::array<std::string, N>>
-RowMajorDataset<N>::get_samples()
+std::vector<std::vector<std::string>>
+RowMajorDataset::get_samples()
 {
 	if (this->_ready)
         return _samples;
@@ -118,16 +108,9 @@ RowMajorDataset<N>::get_samples()
 }
 
 
-template<std::size_t N>
-bool RowMajorDataset<N>::import()
+bool RowMajorDataset::import()
 {
 	int row_counter = 0;
-	std::size_t sample_size;
-	
-	if (this->_all_cols)
-		sample_size = N;
-	else
-		sample_size = this->_param.selected_columns.size();
 
 	const int max = this->_param.max_samples;
 	const char separator = this->_param.separator;
@@ -141,8 +124,8 @@ bool RowMajorDataset<N>::import()
 	while (row_counter < max && std::getline(file, current_sample))
 	{
 		int pos_start = 0, pos_end = 0;
-		int column = 0, sample_column = 0;
-		std::array<std::string, N> sample;
+		int column = 0;
+		std::vector<std::string> sample;
 		
 		pos_end = current_sample.find(separator, pos_start);
 		
@@ -150,8 +133,9 @@ bool RowMajorDataset<N>::import()
 		{
 			if (this->check_index(column))
 			{
-				sample[sample_column++] =
-                    current_sample.substr(pos_start, pos_end - pos_start);
+				sample.push_back(std::move(
+                    current_sample.substr(pos_start, pos_end - pos_start)
+				));
 			}
 			pos_start = pos_end + 1;
 			pos_end = current_sample.find(separator, pos_start);
@@ -159,9 +143,9 @@ bool RowMajorDataset<N>::import()
 		}
 		if (this->check_index(column))
 		{
-			sample[sample_column] = std::move(
+			sample.push_back(std::move(
                 current_sample.substr(pos_start, pos_end - pos_start)
-            );
+            ));
 		}
 		_samples.push_back(std::move(sample));
 		row_counter++;
@@ -171,10 +155,9 @@ bool RowMajorDataset<N>::import()
 }
 
 
-template<std::size_t N>
-void RowMajorDataset<N>::print()
+void RowMajorDataset::print()
 {
-	int i = 1;
+	int i = 0;
 	for (const auto& sample : this->_samples)
 	{
 		std::printf("%i\t: ", i++);
@@ -187,15 +170,13 @@ void RowMajorDataset<N>::print()
 
 /*** ColMajorDataset ***/
 
-template<std::size_t N>
-ColMajorDataset<N>::ColMajorDataset(const parser_parameters_t& param)
-	: Dataset<N>(param)
+ColMajorDataset::ColMajorDataset(const parser_parameters_t& param)
+	: Dataset(param)
 { }
 
 
-template<std::size_t N>
-std::array<std::vector<std::string>, N>
-ColMajorDataset<N>::get_features()
+std::vector<std::vector<std::string>>
+ColMajorDataset::get_features()
 {
 	if (this->_ready)
         return _features;
@@ -203,11 +184,9 @@ ColMajorDataset<N>::get_features()
 }
 
 
-template<std::size_t N>
-bool ColMajorDataset<N>::import()
+bool ColMajorDataset::import()
 {
 	int row_counter = 0;
-    const std::size_t sample_size = this->_param.selected_columns.size();
 	const int max = this->_param.max_samples;
 	const char separator = this->_param.separator;
 	std::fstream file(this->_param.filename);
@@ -218,6 +197,20 @@ bool ColMajorDataset<N>::import()
 
 	for (auto& feature : _features)
 		feature.clear();
+
+    std::size_t sample_size = this->_param.selected_columns.size();
+	if (sample_size == 0) // all columns have to be processed
+	{
+		// getting first sample in order to guess the number of columns
+		std::getline(file, current_sample);
+		sample_size = std::count(
+			current_sample.begin(),
+			current_sample.end(),
+			this->_param.separator) + 1;
+		file.seekg(0, std::ios_base::beg);
+	}
+	_features.resize(sample_size);
+	std::cout << "resize " << sample_size << '\n'; //D
 
 	while (row_counter < max && std::getline(file, current_sample))
 	{
@@ -249,15 +242,15 @@ bool ColMajorDataset<N>::import()
 }
 
 
-template<std::size_t N>
-void ColMajorDataset<N>::print()
+void ColMajorDataset::print()
 {
 	int i = 1;
-	const int max = _features[0].size();
-	for (int i = 0; i < max; i++)
+	const int n_rows = _features[0].size();
+	const int n_cols = _features.size();
+	for (int i = 0; i < n_rows; i++)
 	{
 		std::printf("%i\t: ", i);
-		for (int j = 0; j<N; j++)
+		for (int j = 0; j < n_cols; j++)
 			std::cout << _features[j][i] << "\t";
 		std::cout << std::endl;
 	}
