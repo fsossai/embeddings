@@ -10,19 +10,21 @@
 
 std::string get_timestamp(std::string format);
 
+template<typename T>
+std::string vector_to_string(std::vector<T> v);
+
 class Results
 {
 public:
-    int P;
+    int P, D, N;
     Matrix<int> packets;
     Matrix<int> lookups;
     std::vector<int> fanout;
     std::vector<int> outgoing_packets;
     std::vector<int> outgoing_lookups;
-    float avg_fanout;
     std::string name = "";
 
-    Results(int P);
+    Results(int P, int D, int N);
 
     void print();
 
@@ -64,12 +66,30 @@ std::string get_timestamp(std::string format)
     return str;
 }
 
+
+template<typename T>
+std::string vector_to_string(std::vector<T> v)
+{
+    std::stringstream ss("");
+    ss << '[';
+
+    for (int i = 0; i < v.size() - 1; ++i)
+        ss << v[i] << ',';
+    
+    ss << v[v.size() - 1] << ']';
+
+    return ss.str();
+}
+
 /// RESULTS
 
-Results::Results(int P) :
+Results::Results(int P, int D, int N) :
     packets(Matrix<int>(P,P)),
     lookups(Matrix<int>(P,P)),
-    P(P)
+    fanout(std::vector<int>(P+1)),
+    outgoing_packets(std::vector<int>(D+1)),
+    outgoing_lookups(std::vector<int>(D+1)),
+    P(P), D(D), N(N)
 { }
 
 void Results::print()
@@ -83,41 +103,31 @@ void Results::print()
 
 void Results::save(std::string output_directory)
 {
+    // creating a JSON file
+
+    // setting a default name if not specified
     if (name.length() == 0)
         name = get_default_name();
-
-    std::ofstream file_packets(
-        output_directory + "\\" + name + "_packets.txt",
-		std::ios_base::binary);
-
-    std::ofstream file_lookups(
-        output_directory + "\\" + name + "_lookups.txt",
-		std::ios_base::binary);
-
-    std::ofstream file_outgoing(
-        output_directory + "\\" + name + "_outgoing.csv",
+    
+    std::ofstream file(
+        output_directory + "\\" + name + ".json",
         std::ios_base::binary);
 
-    packets.print(file_packets);
-    lookups.print(file_lookups);
-
-    // checking sizes consistency
-    if (outgoing_packets.size() != outgoing_lookups.size() ||
-        outgoing_lookups.size() != fanout.size())
-    {
-        throw std::logic_error("Results::save: Inconsistent sizes");
-    }
-
-    // printing header of CSV file
-    file_outgoing << "fanout,outgoing_packets,outgoing_lookups\n";
-    
-    const int N = fanout.size();
-    for (int i = 0; i < N; ++i)
-    {
-        file_outgoing << fanout[i] << ',';
-        file_outgoing << outgoing_packets[i] << ',';
-        file_outgoing << outgoing_lookups[i] << '\n';
-    }
+    file << "{\n";
+    file << "\"processors\" : " << P << ",\n";
+    file << "\"tables\" : " << D << ",\n";
+    file << "\"queries\" : " << N << ",\n";
+    file << "\"packets\" : " << packets.to_string() << ",\n";
+    file << "\"lookups\" : " << lookups.to_string() << ",\n";
+    file << "\"outgoing_packets\" : " <<
+        vector_to_string(outgoing_packets) << ",\n";
+    file << "\"outgoing_lookups\" : " <<
+        vector_to_string(outgoing_lookups) << ",\n";
+    file << "\"fanout\" : " <<
+        vector_to_string(fanout) << '\n';
+    file << '}';
+    file.flush();
+    file.close();
 }
 
 std::string Results::get_default_name()
@@ -136,13 +146,9 @@ Results cached_simulation(
     const int N = queries.size();
     const int D = queries[0].size();
 
-    Results results(P);
-    results.fanout.reserve(N);
-    results.outgoing_packets.reserve(N);
-    results.outgoing_lookups.reserve(N);
+    Results results(P, D, N);
 
     std::vector<int> lookups(D);
-    float cumulative_fanout = 0.0f;
 
     for (const auto& query : queries)
     {
@@ -161,16 +167,14 @@ Results cached_simulation(
             [&](int l) { ++lcounts[l]; }
         );
 
-        // calculating fanout
-        int fanout = lcounts.size();
-        cumulative_fanout += fanout;
-        results.fanout.push_back(fanout);
+        // calculating fanout histogram
+        ++results.fanout[lcounts.size()];
 
         // identifying outgoing data
         int local_lookups = lcounts[p];
         lcounts.erase(p);
-        results.outgoing_packets.push_back(lcounts.size());
-        results.outgoing_lookups.push_back(D - local_lookups);
+        ++results.outgoing_packets[lcounts.size()];
+        ++results.outgoing_lookups[D - local_lookups];
 
         // accounting for all sent packets
         for (const auto& [i, counts] : lcounts)
@@ -180,7 +184,6 @@ Results cached_simulation(
         }
     }
 
-    results.avg_fanout = cumulative_fanout / queries.size();
     return results;
 }
 
