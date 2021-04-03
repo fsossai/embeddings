@@ -26,11 +26,13 @@ int main(int argc, char **argv)
 	std::cout << chronometer.lap() << "s" << std::endl;
 
     /// Starting simulations
-	for (int P : {2,4,8,16})
+	for (int P : {16})
 	{
+		std::cout << "P = " << P << " ... ";
     	LookupProtocol<Sharding::Random, uint32_t> protocol(P);
 		Results results = cached_simulation(queries, P, protocol);
-		results.print();
+		results.save("results");
+		std::cout << chronometer.lap() << "s" << std::endl;
 	}
 
 	std::cout << "Simulations took: " << chronometer.lap() << "s" << std::endl;
