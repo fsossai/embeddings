@@ -25,14 +25,15 @@ int main(int argc, char **argv)
 	auto queries = dataset.get_samples();
 	std::cout << chronometer.lap() << "s" << std::endl;
 
-    /// Starting simulation
-    chronometer.start();
-    int P = 1;
-    LookupProtocol<Sharding::Random, uint32_t> protocol(P);
-    Results results = cached_simulation(queries, P, protocol);
-    std::cout << "Average fanout: " << results.avg_fanout << '\n';
-	std::cout << chronometer.lap() << "s" << std::endl;
+    /// Starting simulations
+	for (int P : {2,4,8,16})
+	{
+    	LookupProtocol<Sharding::Random, uint32_t> protocol(P);
+		Results results = cached_simulation(queries, P, protocol);
+		results.print();
+	}
 
+	std::cout << "Simulations took: " << chronometer.lap() << "s" << std::endl;
     std::cout << "Total time: " << chronometer.elapsed() << std::endl;
 
     return 0;

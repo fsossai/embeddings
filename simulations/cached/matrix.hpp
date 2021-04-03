@@ -4,6 +4,10 @@
 #include <vector>
 #include <iostream>
 
+// Implementation of a simple row-major 2d vector
+// The purpose is to avoid the double dereferentiation of the common
+// vector of vectors
+
 template<typename T>
 class Matrix
 {
@@ -22,14 +26,13 @@ public:
 
     void print(std::ostream& stream, char sep = '\t', char newline = '\n')
     {
-        int M_1 = M-1;
         for (uint32_t i = 0; i < N; ++i)
         {
-            for (uint32_t j = 0; j < M_1; ++j)
+            for (uint32_t j = 0; j < M - 1; ++j)
             {
                 stream << _matrix[i*N + j] << sep;
             }
-            stream << _matrix[i*N + M_1] << newline;
+            stream << _matrix[i*N + M - 1] << newline;
         }
     }
 
