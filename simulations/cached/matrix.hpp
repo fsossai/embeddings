@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <iostream>
+#include <sstream>
 
 // Implementation of a simple row-major 2d vector
 // The purpose is to avoid the double dereferentiation of the common
@@ -34,6 +35,29 @@ public:
             }
             stream << _matrix[i*N + M - 1] << newline;
         }
+    }
+
+    std::string to_string()
+    {
+        std::stringstream ss("");
+        ss << '[';
+        for (uint32_t i = 0; i < N - 1; ++i)
+        {
+            ss << '[';
+            for (uint32_t j = 0; j < M - 1; ++j)
+            {
+                ss << _matrix[i*N + j] << ',';
+            }
+            ss << _matrix[i*N + M - 1] << "],";
+        }
+        ss << '[';
+        for (uint32_t j = 0; j < M - 1; ++j)
+        {
+            ss << _matrix[(N-1)*N + j] << ',';
+        }
+        ss << _matrix[(N-1)*N + M - 1] << "]]";
+
+        return ss.str();
     }
 
     void print(char sep = '\t', char newline = '\n')
