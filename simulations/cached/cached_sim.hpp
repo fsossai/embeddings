@@ -14,7 +14,7 @@
 std::string get_timestamp(std::string format);
 
 template<typename T>
-std::string vector_to_string(std::vector<T> v);
+std::string vector_to_string(std::vector<T>& v);
 
 class Results
 {
@@ -29,6 +29,7 @@ public:
     std::string name = "";
     std::string cache_policy = "";
     std::string cache_mode = "";
+    std::vector<int> *cache_sizes = nullptr;
 
     Results(int P, int D, int N);
 
@@ -90,7 +91,7 @@ std::string get_timestamp(std::string format)
 
 
 template<typename T>
-std::string vector_to_string(std::vector<T> v)
+std::string vector_to_string(std::vector<T>& v)
 {
     std::stringstream ss("");
     ss << '[';
@@ -109,7 +110,7 @@ Results::Results(int P, int D, int N) :
     packets(Matrix<int>(P,P)),
     lookups(Matrix<int>(P,P)),
     fanout(std::vector<int>(P+1)),
-    outgoing_packets(std::vector<int>(D+1)),
+    outgoing_packets(std::vector<int>(P+1)),
     outgoing_lookups(std::vector<int>(D+1)),
     P(P), D(D), N(N)
 { }
@@ -152,9 +153,12 @@ void Results::save(std::string output_directory)
     
     // cache hits
     if (hits != nullptr)
-        file << ",\n\"cache_hits\" : " << hits->to_string() << '\n';
+    {
+        file << ",\n\"cache_hits\" : " << hits->to_string() << ",\n";
+        file << "\"cache_sizes\" : " << vector_to_string(*cache_sizes) << '\n';
+    }
 
-    file << '}';
+    file << "\n}";
     file.flush();
     file.close();
 }
@@ -181,6 +185,7 @@ Results cached_simulation(
     results.hits = &cache.hits;
     results.cache_policy = cache.policy;
     results.cache_mode = cache.mode;
+    results.cache_sizes = &cache.sizes;
 
     std::vector<int> lookups(D);
 

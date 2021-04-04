@@ -28,6 +28,9 @@ if __name__ == '__main__':
     outgoing_packets = np.array(sim['outgoing_packets'])
     outgoing_lookups = np.array(sim['outgoing_lookups'])
     fanout = np.array(sim['fanout'])
+    cache_hits = None
+    if 'cache_hits' in sim:
+        cache_hits = np.array(sim['cache_hits'])
 
     # plotting results
 
@@ -37,6 +40,7 @@ if __name__ == '__main__':
     plt.colorbar()
     plt.xticks(range(P), range(P))
     plt.yticks(range(P), range(P))
+    plt.tight_layout()
 
     plt.figure(1)
     plt.title('Lookups matrix')
@@ -44,6 +48,7 @@ if __name__ == '__main__':
     plt.colorbar()
     plt.xticks(range(P), range(P))
     plt.yticks(range(P), range(P))
+    plt.tight_layout()
 
     plt.figure(2)
     plt.title('Received packets')
@@ -71,10 +76,10 @@ if __name__ == '__main__':
     plt.tight_layout()
 
     plt.figure(5)
-    plt.bar(range(0,D+1), outgoing_packets)
+    plt.bar(range(0,P+1), outgoing_packets)
     plt.title('Outgoing packets distribution')
     plt.xlabel('Number of outgoing packets')
-    plt.xticks(range(0,D+1), range(0,D+1), rotation=90)
+    plt.xticks(range(0,P+1), range(0,P+1))
     plt.yticks(None, None)
     plt.ylabel('Count')
     plt.tight_layout()
@@ -87,5 +92,16 @@ if __name__ == '__main__':
     plt.yticks(None, None)
     plt.ylabel('Count')
     plt.tight_layout()
+
+    if cache_hits is not None:
+        plt.figure(7)
+        plt.title('Cache hits')
+        plt.imshow(cache_hits)
+        plt.colorbar()
+        plt.xlabel('Table index')
+        plt.ylabel('Processor index')
+        plt.xticks(range(D), range(D), rotation=90)
+        plt.yticks(range(P), range(P))
+        plt.tight_layout()
 
     plt.show()

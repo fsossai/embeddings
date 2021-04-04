@@ -38,7 +38,8 @@ int main(int argc, char **argv)
 		std::cout << "P = " << P << " ... ";
     	LookupProtocol<Sharding::Random, uint32_t> protocol(P);
 		Cache<Policy::LFU, Mode::Private, uint32_t> cache(sizes, P, D);
-		
+
+		//Results results = noncached_simulation(queries, P, protocol);
 		Results results = cached_simulation(queries, P, protocol, cache);
 		results.save("results");
 		std::cout << chronometer.lap() << "s" << std::endl;
