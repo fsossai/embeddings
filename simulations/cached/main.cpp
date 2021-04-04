@@ -25,12 +25,21 @@ int main(int argc, char **argv)
 	auto queries = dataset.get_samples();
 	std::cout << chronometer.lap() << "s" << std::endl;
 
+	const int D = queries[0].size();
+	const int N = queries.size();
+
+	std::vector<int> sizes(D);
+	for (auto& s : sizes)
+		s = 100;
+
     /// Starting simulations
 	for (int P : {16})
 	{
 		std::cout << "P = " << P << " ... ";
     	LookupProtocol<Sharding::Random, uint32_t> protocol(P);
-		Results results = noncached_simulation(queries, P, protocol);
+		Cache<Policy::LFU, Mode::Private, uint32_t> cache(sizes, P, D);
+		
+		Results results = cached_simulation(queries, P, protocol, cache);
 		results.save("results");
 		std::cout << chronometer.lap() << "s" << std::endl;
 	}

@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cassert>
 #include <ctime>
+#include <memory>
 #include <vector>
 #include <unordered_map>
 
@@ -24,7 +25,10 @@ public:
     std::vector<int> fanout;
     std::vector<int> outgoing_packets;
     std::vector<int> outgoing_lookups;
+    Matrix<int> *hits = nullptr;
     std::string name = "";
+    std::string cache_policy = "";
+    std::string cache_mode = "";
 
     Results(int P, int D, int N);
 
@@ -135,6 +139,8 @@ void Results::save(std::string output_directory)
     file << "\"processors\" : " << P << ",\n";
     file << "\"tables\" : " << D << ",\n";
     file << "\"queries\" : " << N << ",\n";
+    file << "\"cache_policy\" : " << '\"' << cache_policy << "\",\n";
+    file << "\"cache_mode\" : " << '\"' << cache_mode << "\",\n";
     file << "\"packets\" : " << packets.to_string() << ",\n";
     file << "\"lookups\" : " << lookups.to_string() << ",\n";
     file << "\"outgoing_packets\" : " <<
@@ -142,7 +148,12 @@ void Results::save(std::string output_directory)
     file << "\"outgoing_lookups\" : " <<
         vector_to_string(outgoing_lookups) << ",\n";
     file << "\"fanout\" : " <<
-        vector_to_string(fanout) << '\n';
+        vector_to_string(fanout);
+    
+    // cache hits
+    if (hits != nullptr)
+        file << ",\n\"cache_hits\" : " << hits->to_string() << '\n';
+
     file << '}';
     file.flush();
     file.close();
@@ -160,13 +171,16 @@ Results cached_simulation(
     std::vector<std::vector<Tid>> queries,
     int P,
     LookupProtocol<Tsharding, Tid>& protocol,
-    Cache<Tpolicy, Tmode, Tkey> cache)
+    Cache<Tpolicy, Tmode, Tkey>& cache)
 {
     std::srand(std::time(0));
     const int N = queries.size();
     const int D = queries[0].size();
 
     Results results(P, D, N);
+    results.hits = &cache.hits;
+    results.cache_policy = cache.policy;
+    results.cache_mode = cache.mode;
 
     std::vector<int> lookups(D);
 
@@ -282,7 +296,8 @@ class Cache<Policy::LFU, Mode::Private, Tkey>
 public:
     std::vector<int> sizes;
     int P, D;
-    const std::string name = "LFU,Private";
+    const std::string policy = "LFU";
+    const std::string mode = "Private";
     Matrix<int> hits;
 
     Cache(std::vector<int> sizes, int P, int D) :
@@ -308,7 +323,6 @@ public:
     {
         if (_system[p][table].contains(id)) // cache hit
         {
-            FixedSizeHeap<int,int,std::less<int>> f;
             _system[p][table].change(id, [](uint64_t val) { return val + 1; });
             //_system[p][table].set(id, _system[p][table].get(id) + 1);
             ++hits.at(p, table);
