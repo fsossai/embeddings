@@ -30,12 +30,11 @@ int main(int argc, char **argv)
 	{
 		std::cout << "P = " << P << " ... ";
     	LookupProtocol<Sharding::Random, uint32_t> protocol(P);
-		Results results = cached_simulation(queries, P, protocol);
+		Results results = noncached_simulation(queries, P, protocol);
 		results.save("results");
 		std::cout << chronometer.lap() << "s" << std::endl;
 	}
 
-	std::cout << "Simulations took: " << chronometer.lap() << "s" << std::endl;
     std::cout << "Total time: " << chronometer.elapsed() << std::endl;
 
     return 0;

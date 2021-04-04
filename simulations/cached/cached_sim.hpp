@@ -2,10 +2,12 @@
 #define __CACHED_SIM_HPP__
 
 #include <algorithm>
+#include <cassert>
 #include <ctime>
 #include <vector>
 #include <unordered_map>
 
+#include <fixed_size_heap.hpp>
 #include "matrix.hpp"
 
 std::string get_timestamp(std::string format);
@@ -41,12 +43,28 @@ class Sharding
 {
 public:
     class Random;
-    class X;
+};
+
+class Policy
+{
+public:
+    class LRU;
+    class LFU;
+};
+
+class Mode
+{
+public:
+    class Shared;
+    class Private;
 };
 
 
 template<typename Tsharding, typename Tid>
 class LookupProtocol;
+
+template<typename Tpolicy, typename Tmode, typename Tkey>
+class Cache;
 
 
 /*** DEFINITIONS ***/
@@ -136,8 +154,66 @@ std::string Results::get_default_name()
 }
 
 
-template<typename Tsharding, typename Tid>
+template<typename Tsharding, typename Tid,
+    typename Tpolicy, typename Tmode, typename Tkey>
 Results cached_simulation(
+    std::vector<std::vector<Tid>> queries,
+    int P,
+    LookupProtocol<Tsharding, Tid>& protocol,
+    Cache<Tpolicy, Tmode, Tkey> cache)
+{
+    std::srand(std::time(0));
+    const int N = queries.size();
+    const int D = queries[0].size();
+
+    Results results(P, D, N);
+
+    std::vector<int> lookups(D);
+
+    for (const auto& query : queries)
+    {
+        // a random processor will take care of the query
+        const int p = std::rand() % P;
+
+        // look up for every id in the query
+        std::transform(query.begin(), query.end(), lookups.begin(),
+            [&](int id) { return protocol.lookup(id); });
+
+        // checking cache of 'p' for each table
+        for (int i = 0; i < D; ++i)
+        {
+            if (lookups[i] != p && cache.reference(p, i, query[i]))
+                lookups[i] = p; // no outgoing lookup or packet
+        }
+
+        // counting the number of distinct lookups
+        std::unordered_map<int, int> lcounts;
+        for (auto& l : lookups)
+            ++lcounts[l];
+
+        // calculating fanout histogram
+        ++results.fanout[lcounts.size()];
+
+        // identifying outgoing data
+        int local_lookups = lcounts[p];
+        lcounts.erase(p);
+        ++results.outgoing_packets[lcounts.size()];
+        ++results.outgoing_lookups[D - local_lookups];
+
+        // accounting for all sent packets
+        for (const auto& [i, counts] : lcounts)
+        {
+            results.packets.at(p, i) += 1;
+            results.lookups.at(p, i) += counts;
+        }
+    }
+
+    return results;
+}
+
+
+template<typename Tsharding, typename Tid>
+Results noncached_simulation(
     std::vector<std::vector<Tid>> queries,
     int P,
     LookupProtocol<Tsharding, Tid>& protocol)
@@ -157,15 +233,12 @@ Results cached_simulation(
 
         // look up for every id in the query
         std::transform(query.begin(), query.end(), lookups.begin(),
-            [&](int id) { return protocol.lookup(id); }
-        );
+            [&](auto id) { return protocol.lookup(id); });
 
         // counting the number of distinct lookups
         std::unordered_map<int, int> lcounts;
-        std::for_each(
-            lookups.begin(), lookups.end(),
-            [&](int l) { ++lcounts[l]; }
-        );
+        for (auto& l : lookups)
+            ++lcounts[l];
 
         // calculating fanout histogram
         ++results.fanout[lcounts.size()];
@@ -202,13 +275,54 @@ public:
     const int P;
 };
 
-template<>
-class LookupProtocol<Sharding::X, uint32_t>
+
+template<typename Tkey>
+class Cache<Policy::LFU, Mode::Private, Tkey>
 {
 public:
-    LookupProtocol() = default;
+    std::vector<int> sizes;
+    int P, D;
+    const std::string name = "LFU,Private";
+    Matrix<int> hits;
 
-    int lookup(uint32_t id) { return 0; }
+    Cache(std::vector<int> sizes, int P, int D) :
+        sizes(sizes),
+        P(P), D(D),
+        _system(
+            std::vector<std::vector<
+                FixedSizeHeap<Tkey, uint64_t, std::less<uint64_t>>
+            >>(P)
+        ),
+        hits(P, D)
+    {
+        assert(sizes.size() == D);
+        for (auto& p : _system)
+        {
+            p.reserve(D);
+            for (auto size : sizes)
+                p.push_back(FixedSizeHeap<Tkey, uint64_t, std::less<uint64_t>>(size));
+        }
+    }
+
+    bool reference(int p, int table, Tkey id)
+    {
+        if (_system[p][table].contains(id)) // cache hit
+        {
+            FixedSizeHeap<int,int,std::less<int>> f;
+            _system[p][table].change(id, [](uint64_t val) { return val + 1; });
+            //_system[p][table].set(id, _system[p][table].get(id) + 1);
+            ++hits.at(p, table);
+            return true;
+        }
+        // cache miss
+        _system[p][table].insert(id, 1);
+        return false;
+    }
+
+private:
+    std::vector<std::vector<
+        FixedSizeHeap<Tkey, uint64_t, std::less<uint64_t>>
+    >> _system;
 };
 
 

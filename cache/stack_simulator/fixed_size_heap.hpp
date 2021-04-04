@@ -24,7 +24,7 @@ public:
 
     bool contains(const Tkey& key);
 
-    Tval& get(const Tkey& key);
+    Tval& get(const Tkey& key) const;
 
     void set(const Tkey& key, const Tval& val);
 
@@ -160,7 +160,7 @@ bool FixedSizeHeap<Tkey, Tval, Compare>::contains(const Tkey& key)
 }
 
 template<typename Tkey, typename Tval, typename Compare>
-Tval& FixedSizeHeap<Tkey, Tval, Compare>::get(const Tkey& key)
+Tval& FixedSizeHeap<Tkey, Tval, Compare>::get(const Tkey& key) const
 {
     return _v[_m[key]].second;
 }
