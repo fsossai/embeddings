@@ -31,6 +31,7 @@ if __name__ == '__main__':
     cache_hits = None
     if 'cache_hits' in sim:
         cache_hits = np.array(sim['cache_hits'])
+        cache_refs = np.array(sim['cache_refs'])
 
     # plotting results
 
@@ -95,13 +96,14 @@ if __name__ == '__main__':
 
     if cache_hits is not None:
         plt.figure(7)
-        plt.title('Cache hits')
-        plt.imshow(cache_hits)
+        plt.title('Cache hit-rates')
+        plt.imshow(cache_hits / cache_refs)
         plt.colorbar()
         plt.xlabel('Table index')
         plt.ylabel('Processor index')
         plt.xticks(range(D), range(D), rotation=90)
         plt.yticks(range(P), range(P))
         plt.tight_layout()
+
 
     plt.show()

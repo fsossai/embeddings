@@ -25,11 +25,12 @@ public:
     std::vector<int> fanout;
     std::vector<int> outgoing_packets;
     std::vector<int> outgoing_lookups;
-    Matrix<int> *hits = nullptr;
-    std::string name = "";
+    Matrix<int> *cache_hits = nullptr;
+    Matrix<int> *cache_refs = nullptr;
+    std::vector<int> *cache_sizes = nullptr;
     std::string cache_policy = "";
     std::string cache_mode = "";
-    std::vector<int> *cache_sizes = nullptr;
+    std::string name = "";
 
     Results(int P, int D, int N);
 
@@ -152,13 +153,17 @@ void Results::save(std::string output_directory)
         vector_to_string(fanout);
     
     // cache hits
-    if (hits != nullptr)
+    if (cache_hits != nullptr)
     {
-        file << ",\n\"cache_hits\" : " << hits->to_string() << ",\n";
-        file << "\"cache_sizes\" : " << vector_to_string(*cache_sizes) << '\n';
+        file << ",\n";
+        file << "\"cache_sizes\" : " << vector_to_string(*cache_sizes) << ",\n";
+        file << "\"cache_hits\" : " << cache_hits->to_string() << ",\n";
+        file << "\"cache_refs\" : " << cache_refs->to_string() << "\n";
     }
+    else
+        file << '\n';
 
-    file << "\n}";
+    file << '}';
     file.flush();
     file.close();
 }
@@ -182,7 +187,8 @@ Results cached_simulation(
     const int D = queries[0].size();
 
     Results results(P, D, N);
-    results.hits = &cache.hits;
+    results.cache_hits = &cache.hits;
+    results.cache_refs = &cache.refs;
     results.cache_policy = cache.policy;
     results.cache_mode = cache.mode;
     results.cache_sizes = &cache.sizes;
@@ -304,6 +310,7 @@ public:
     const std::string policy = "LFU";
     const std::string mode = "Private";
     Matrix<int> hits;
+    Matrix<int> refs;
 
     Cache(std::vector<int> sizes, int P, int D) :
         sizes(sizes),
@@ -313,7 +320,8 @@ public:
                 FixedSizeHeap<Tkey, uint64_t, std::less<uint64_t>>
             >>(P)
         ),
-        hits(P, D)
+        hits(P, D),
+        refs(P, D)
     {
         assert(sizes.size() == D);
         for (auto& p : _system)
@@ -326,6 +334,7 @@ public:
 
     bool reference(int p, int table, Tkey id)
     {
+        ++refs.at(p, table);
         if (_system[p][table].contains(id)) // cache hit
         {
             _system[p][table].change(id, [](uint64_t val) { return val + 1; });
