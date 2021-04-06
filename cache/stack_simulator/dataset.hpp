@@ -370,6 +370,65 @@ bool ColMajorDataset<int>::import()
 }
 
 
+
+template<>
+bool ColMajorDataset<uint32_t>::import()
+{
+	int row_counter = 0;
+	const int max = this->_param.max_samples;
+	const char separator = this->_param.separator;
+	std::fstream file(this->_param.filename);
+	std::string current_sample;
+
+	if (!this->check_file())
+		return false;
+
+	for (auto& feature : _features)
+		feature.clear();
+
+    std::size_t sample_size = this->_param.selected_columns.size();
+	if (sample_size == 0) // all columns have to be processed
+	{
+		// getting first sample in order to guess the number of columns
+		std::getline(file, current_sample);
+		sample_size = std::count(
+			current_sample.begin(),
+			current_sample.end(),
+			this->_param.separator) + 1;
+		file.seekg(0, std::ios_base::beg);
+	}
+	_features.resize(sample_size);
+
+	while (row_counter < max && std::getline(file, current_sample))
+	{
+		int pos_start = 0, pos_end = 0;
+		int column = 0, sample_column = 0;
+		
+		pos_end = current_sample.find(separator, pos_start);
+		
+		while (pos_end != std::string::npos)
+		{
+			if (this->check_index(column))
+			{
+				_features[sample_column++].push_back(std::stoul(
+                    current_sample.substr(pos_start, pos_end - pos_start)));
+			}
+			pos_start = pos_end + 1;
+			pos_end = current_sample.find(separator, pos_start);
+			column++;
+		}
+		if (this->check_index(column))
+		{
+			_features[sample_column].push_back(std::stoi(
+                current_sample.substr(pos_start, pos_end - pos_start)));
+		}
+		row_counter++;
+	}
+    this->_ready = true;
+	return true;
+}
+
+
 template<typename T>
 void ColMajorDataset<T>::print()
 {
