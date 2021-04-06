@@ -10,6 +10,7 @@
 
 #include <fixed_size_heap.hpp>
 #include "matrix.hpp"
+#include "sharding.hpp"
 
 std::string get_timestamp(std::string format);
 
@@ -31,6 +32,7 @@ public:
     std::string cache_policy = "";
     std::string cache_mode = "";
     std::string name = "";
+    std::string sharding = "";
 
     Results(int P, int D, int N);
 
@@ -42,13 +44,6 @@ private:
     const std::string _default_time_format = "%Y%m%d-%H%M%S";
 
     std::string get_default_name();
-};
-
-
-class Sharding
-{
-public:
-    class Random;
 };
 
 class Policy
@@ -64,10 +59,6 @@ public:
     class Shared;
     class Private;
 };
-
-
-template<typename Tsharding, typename Tid>
-class LookupProtocol;
 
 template<typename Tpolicy, typename Tmode, typename Tkey>
 class Cache;
@@ -143,6 +134,7 @@ void Results::save(std::string output_directory)
     file << "\"queries\" : " << N << ",\n";
     file << "\"cache_policy\" : " << '\"' << cache_policy << "\",\n";
     file << "\"cache_mode\" : " << '\"' << cache_mode << "\",\n";
+    file << "\"sharding\" : " << '\"' << sharding << "\",\n";
     file << "\"packets\" : " << packets.to_string() << ",\n";
     file << "\"lookups\" : " << lookups.to_string() << ",\n";
     file << "\"outgoing_packets\" : " <<
@@ -201,6 +193,7 @@ Results cached_simulation(
     results.cache_sizes = &cache.sizes;
     results.cache_policy = cache.policy;
     results.cache_mode = cache.mode;
+    results.sharding = protocol.name;
 
     std::vector<int> lookups(D);
 
@@ -209,13 +202,12 @@ Results cached_simulation(
         // a random processor will take care of the query
         const int p = std::rand() % P;
 
-        // look up for every id in the query
-        std::transform(query.begin(), query.end(), lookups.begin(),
-            [&](int id) { return protocol.lookup(id); });
-
-        // checking cache of 'p' for each table
+        // resolving the query
         for (int i = 0; i < D; ++i)
         {
+            // look up for 'query[i]' in table 'i'
+            lookups[i] = protocol.lookup(i, query[i]);
+            // checking cache of 'p' for each table
             if (lookups[i] != p && cache.reference(p, i, query[i]))
                 lookups[i] = p; // no outgoing lookup or packet
         }
@@ -257,6 +249,7 @@ Results noncached_simulation(
     const int D = queries[0].size();
 
     Results results(P, D, N);
+    results.sharding = protocol.name;
 
     std::vector<int> lookups(D);
 
@@ -265,9 +258,9 @@ Results noncached_simulation(
         // a random processor will take care of the query
         const int p = std::rand() % P;
 
-        // look up for every id in the query
-        std::transform(query.begin(), query.end(), lookups.begin(),
-            [&](auto id) { return protocol.lookup(id); });
+        // resolving the query
+        for (int i = 0; i < D; ++i)
+            lookups[i] = protocol.lookup(i, query[i]);
 
         // counting the number of distinct lookups
         std::unordered_map<int, int> lcounts;
@@ -294,21 +287,8 @@ Results noncached_simulation(
     return results;
 }
 
-template<>
-class LookupProtocol<Sharding::Random, uint32_t>
-{
-public:
-    LookupProtocol(int P) : P(P)
-    { }
 
-    int lookup(uint32_t id) const
-    {
-        return id % P;
-    }
-
-    const int P;
-};
-
+/*** Cache ***/
 
 template<typename Tkey>
 class Cache<Policy::LFU, Mode::Private, Tkey>

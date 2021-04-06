@@ -419,7 +419,7 @@ bool ColMajorDataset<uint32_t>::import()
 		}
 		if (this->check_index(column))
 		{
-			_features[sample_column].push_back(std::stoi(
+			_features[sample_column].push_back(std::stoul(
                 current_sample.substr(pos_start, pos_end - pos_start)));
 		}
 		row_counter++;
