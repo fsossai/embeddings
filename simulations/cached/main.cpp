@@ -2,32 +2,20 @@
 #include <vector>
 #include <numeric>
 
-#include <dataset.hpp>
 #include <chronometer.hpp>
 
 #include "cached_sim.hpp"
-
-bool set_cmdline_args(int argc, char **argv, parser_parameters& param);
+#include "utils.hpp"
 
 int main(int argc, char **argv)
 {
     Chronometer chronometer;
 
-	parser_parameters param;
-    param.separator = ',';
-
-    if (!set_cmdline_args(argc, argv, param))
-		return -1;
-
-	ColMajorDataset<int> ds_counts("counts.txt");
-	ds_counts.import();
-	std::vector<int> counts = ds_counts.get_features()[0];
+	std::vector<int> counts = parse_vector<int>(std::string(argv[2]));
 
     std::cout << "Reading dataset ... " << std::flush;
     chronometer.start();
-	RowMajorDataset<uint32_t> dataset(param);
-	dataset.import();
-	auto queries = dataset.get_samples();
+	auto queries = parse_vector_of_fvectors<uint32_t>(std::string(argv[1]));
 	std::cout << chronometer.lap() << "s" << std::endl;
 
 	const int D = queries[0].size();
