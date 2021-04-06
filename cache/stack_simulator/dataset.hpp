@@ -14,10 +14,10 @@
 struct parser_parameters
 {
 	std::vector<int> selected_columns;
-	int max_samples = 0;
+	int max_samples = std::numeric_limits<int>::max();
 	char separator = '\t';
 	std::string filename;
-	int sparse_feat_offset = std::numeric_limits<int>::max();
+	int sparse_feat_offset = 0;
 };
 
 
