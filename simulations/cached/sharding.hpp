@@ -8,7 +8,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
-//#include <dataset.hpp>
+#include <dataset.hpp>
 
 class Sharding
 {
