@@ -173,11 +173,20 @@ std::string Results::get_default_name()
     return "sim_" + get_timestamp(_default_time_format);
 }
 
+struct pair_hash
+{
+    template<typename T1, typename T2>
+    std::size_t operator()(const std::pair<T1, T2>& p) const
+    {
+        return std::hash<T1>{}(p.first) ^ std::hash<T2>{}(p.second);
+    }
+};
+
 
 template<typename Tsharding, typename Tid,
     typename Tpolicy, typename Tmode, typename Tkey>
 Results cached_simulation(
-    std::vector<std::vector<Tid>> queries,
+    const std::vector<std::vector<Tid>>& queries,
     int P,
     LookupProtocol<Tsharding, Tid>& protocol,
     Cache<Tpolicy, Tmode, Tkey>& cache)
@@ -189,9 +198,9 @@ Results cached_simulation(
     Results results(P, D, N);
     results.cache_hits = &cache.hits;
     results.cache_refs = &cache.refs;
+    results.cache_sizes = &cache.sizes;
     results.cache_policy = cache.policy;
     results.cache_mode = cache.mode;
-    results.cache_sizes = &cache.sizes;
 
     std::vector<int> lookups(D);
 
@@ -239,7 +248,7 @@ Results cached_simulation(
 
 template<typename Tsharding, typename Tid>
 Results noncached_simulation(
-    std::vector<std::vector<Tid>> queries,
+    const std::vector<std::vector<Tid>>& queries,
     int P,
     LookupProtocol<Tsharding, Tid>& protocol)
 {
@@ -289,10 +298,10 @@ template<>
 class LookupProtocol<Sharding::Random, uint32_t>
 {
 public:
-    LookupProtocol(int n_processors) : P(n_processors)
+    LookupProtocol(int P) : P(P)
     { }
 
-    int lookup(uint32_t id)
+    int lookup(uint32_t id) const
     {
         return id % P;
     }
@@ -337,8 +346,7 @@ public:
         ++refs.at(p, table);
         if (_system[p][table].contains(id)) // cache hit
         {
-            _system[p][table].change(id, [](uint64_t val) { return val + 1; });
-            //_system[p][table].set(id, _system[p][table].get(id) + 1);
+            _system[p][table].change(id, [](auto val) { return val + 1; });
             ++hits.at(p, table);
             return true;
         }
@@ -350,6 +358,54 @@ public:
 private:
     std::vector<std::vector<
         FixedSizeHeap<Tkey, uint64_t, std::less<uint64_t>>
+    >> _system;
+};
+
+
+template<typename Tkey>
+class Cache<Policy::LFU, Mode::Shared, Tkey>
+{
+public:
+    std::vector<int> sizes;
+    int P, D;
+    const std::string policy = "LFU";
+    const std::string mode = "Shared";
+    Matrix<int> hits;
+    Matrix<int> refs;
+
+    Cache(int size, int P, int D) :
+        sizes({size}),
+        P(P), D(D),
+        hits(P, D),
+        refs(P, D)
+    {
+        _system.resize(P,
+            FixedSizeHeap<std::pair<int, Tkey>, uint64_t,
+                std::less<uint64_t>, pair_hash>(size));
+    }
+
+    bool reference(int p, int table, Tkey id)
+    {
+        const std::pair<int, int> key = std::make_pair(table, id);
+        ++refs.at(p, table);
+        if (_system[p].contains(key)) // cache hit
+        {
+            _system[p].change(key, [](auto val) { return val + 1; });
+            ++hits.at(p, table);
+            return true;
+        }
+        // cache miss
+        _system[p].insert(key, 1);
+        return false;
+    }
+
+private:
+    std::vector<
+        FixedSizeHeap<
+            std::pair<int, Tkey>,
+            uint64_t,
+            std::less<uint64_t>,
+            pair_hash
     >> _system;
 };
 

@@ -31,6 +31,7 @@ protected:
 	bool check_file();
 public:
 	Dataset(const parser_parameters& param);
+	Dataset(std::string filename);
 	bool _all_cols = false;
 };
 
@@ -41,7 +42,7 @@ class RowMajorDataset : public Dataset<T>
 private:
 	std::vector<std::vector<T>> _samples;
 public:
-	RowMajorDataset(const parser_parameters& param);
+	using Dataset<T>::Dataset;
 	std::vector<std::vector<T>> get_samples();
 	bool import();
 	void print();
@@ -54,7 +55,7 @@ class ColMajorDataset : public Dataset<T>
 private:
 	std::vector<std::vector<T>> _features;
 public:
-	ColMajorDataset(const parser_parameters& param);
+	using Dataset<T>::Dataset;
 	std::vector<std::vector<T>> get_features();
 	bool import();
 	void print();
@@ -70,6 +71,14 @@ Dataset<T>::Dataset(const parser_parameters& param)
 {
 	if (param.selected_columns.size() == 0)
 		_all_cols = true;
+}
+
+
+template<typename T>
+Dataset<T>::Dataset(std::string filename)
+    : Dataset(parser_parameters())
+{
+	_param.filename = filename;
 }
 
 
@@ -99,12 +108,6 @@ bool Dataset<T>::check_file()
 
 
 /*** RowMajorDataset ***/
-
-template<typename T>
-RowMajorDataset<T>::RowMajorDataset(const parser_parameters& param)
-	: Dataset<T>(param)
-{ }
-
 
 template<typename T>
 std::vector<std::vector<T>>
@@ -240,12 +243,6 @@ void RowMajorDataset<T>::print()
 
 
 /*** ColMajorDataset ***/
-
-template<typename T>
-ColMajorDataset<T>::ColMajorDataset(const parser_parameters& param)
-	: Dataset<T>(param)
-{ }
-
 
 template<typename T>
 std::vector<std::vector<T>>

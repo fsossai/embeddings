@@ -3,7 +3,8 @@
 #include <vector>
 #include <unordered_map>
 
-template<typename Tkey, typename Tval, typename Compare = std::greater<Tval>>
+template<typename Tkey, typename Tval, typename Compare = std::greater<Tval>,
+    typename Hasher = std::hash<Tkey>>
 class FixedSizeHeap
 {
 public:
@@ -16,15 +17,22 @@ public:
     template<typename Changer>
     void change(const Tkey& key, Changer changer);
 
+    template<typename Changer>
+    void change(Tkey&& key, Changer changer);
+
     uint64_t current_size();
 
     bool is_full();
 
     void swap(std::pair<Tkey, Tval>& a, std::pair<Tkey, Tval>& b);
 
-    bool contains(const Tkey& key);
+    bool contains(const Tkey& key) const;
 
-    Tval& get(const Tkey& key) const;
+    bool contains(Tkey&& key) const;
+
+    Tval& get(const Tkey& key);
+
+    Tval& get(Tkey&& key);
 
     void set(const Tkey& key, const Tval& val);
 
@@ -32,49 +40,48 @@ public:
 
 private:
     std::vector<std::pair<Tkey, Tval>> _v;
-    std::unordered_map<Tkey, uint64_t> _m;
+    std::unordered_map<Tkey, uint64_t, Hasher> _m;
     Compare _comp;
     uint64_t _current_size = 0;
     uint64_t _max_size;
 
-    inline uint64_t parent(uint64_t i);
+    inline uint64_t parent(uint64_t i) const;
     
-    inline uint64_t left(uint64_t i);
+    inline uint64_t left(uint64_t i) const;
     
-    inline uint64_t right(uint64_t i);
+    inline uint64_t right(uint64_t i) const;
 };
 
 /*** DEFINITIONS ***/
 
-template<typename Tkey, typename Tval, typename Compare>
-FixedSizeHeap<Tkey, Tval, Compare>::FixedSizeHeap(
+template<typename Tkey, typename Tval, typename Compare, typename Hasher>
+FixedSizeHeap<Tkey, Tval, Compare, Hasher>::FixedSizeHeap(
     uint64_t max_size) :
     _comp(Compare()),
-    _max_size(max_size)
-{
-    _v.resize(max_size);
-}
+    _max_size(max_size),
+    _v(max_size)
+{ }
 
-template<typename Tkey, typename Tval, typename Compare>
-inline uint64_t FixedSizeHeap<Tkey, Tval, Compare>::parent(uint64_t i)
+template<typename Tkey, typename Tval, typename Compare, typename Hasher>
+inline uint64_t FixedSizeHeap<Tkey, Tval, Compare, Hasher>::parent(uint64_t i) const
 {
     return (i - 1) / 2;
 }
 
-template<typename Tkey, typename Tval, typename Compare>
-inline uint64_t FixedSizeHeap<Tkey, Tval, Compare>::left(uint64_t i)
+template<typename Tkey, typename Tval, typename Compare, typename Hasher>
+inline uint64_t FixedSizeHeap<Tkey, Tval, Compare, Hasher>::left(uint64_t i) const
 {
     return 2 * i + 1;
 }
 
-template<typename Tkey, typename Tval, typename Compare>
-inline uint64_t FixedSizeHeap<Tkey, Tval, Compare>::right(uint64_t i)
+template<typename Tkey, typename Tval, typename Compare, typename Hasher>
+inline uint64_t FixedSizeHeap<Tkey, Tval, Compare, Hasher>::right(uint64_t i) const
 {
     return 2 * i + 2;
 }
     
-template<typename Tkey, typename Tval, typename Compare>
-void FixedSizeHeap<Tkey, Tval, Compare>::heapify(uint64_t i)
+template<typename Tkey, typename Tval, typename Compare, typename Hasher>
+void FixedSizeHeap<Tkey, Tval, Compare, Hasher>::heapify(uint64_t i)
 {
     uint64_t l = left(i), r = right(i), pivot;
 
@@ -93,8 +100,8 @@ void FixedSizeHeap<Tkey, Tval, Compare>::heapify(uint64_t i)
     }
 }
 
-template<typename Tkey, typename Tval, typename Compare>
-void FixedSizeHeap<Tkey, Tval, Compare>::insert(
+template<typename Tkey, typename Tval, typename Compare, typename Hasher>
+void FixedSizeHeap<Tkey, Tval, Compare, Hasher>::insert(
     const Tkey& key, Tval val)
 {
     if (_current_size == _max_size)
@@ -118,9 +125,9 @@ void FixedSizeHeap<Tkey, Tval, Compare>::insert(
     }
 }
 
-template<typename Tkey, typename Tval, typename Compare>
+template<typename Tkey, typename Tval, typename Compare, typename Hasher>
 template<typename Changer>
-void FixedSizeHeap<Tkey, Tval, Compare>::change(
+void FixedSizeHeap<Tkey, Tval, Compare, Hasher>::change(
     const Tkey& key,
     Changer changer)
 {
@@ -130,21 +137,33 @@ void FixedSizeHeap<Tkey, Tval, Compare>::change(
     heapify(i);
 }
 
-template<typename Tkey, typename Tval, typename Compare>
-uint64_t FixedSizeHeap<Tkey, Tval, Compare>::current_size()
+template<typename Tkey, typename Tval, typename Compare, typename Hasher>
+template<typename Changer>
+void FixedSizeHeap<Tkey, Tval, Compare, Hasher>::change(
+    Tkey&& key,
+    Changer changer)
+{
+    //assert(contains(key));
+    uint64_t i = _m[key];
+    _v[i].second = changer(_v[i].second);
+    heapify(i);
+}
+
+template<typename Tkey, typename Tval, typename Compare, typename Hasher>
+uint64_t FixedSizeHeap<Tkey, Tval, Compare, Hasher>::current_size()
 {
     return _current_size;
 }
 
 
-template<typename Tkey, typename Tval, typename Compare>
-bool FixedSizeHeap<Tkey, Tval, Compare>::is_full()
+template<typename Tkey, typename Tval, typename Compare, typename Hasher>
+bool FixedSizeHeap<Tkey, Tval, Compare, Hasher>::is_full()
 {
     return _current_size == _max_size;
 }
 
-template<typename Tkey, typename Tval, typename Compare>
-void FixedSizeHeap<Tkey, Tval, Compare>::swap(
+template<typename Tkey, typename Tval, typename Compare, typename Hasher>
+void FixedSizeHeap<Tkey, Tval, Compare, Hasher>::swap(
     std::pair<Tkey, Tval>& a,
     std::pair<Tkey, Tval>& b)
 {
@@ -153,20 +172,32 @@ void FixedSizeHeap<Tkey, Tval, Compare>::swap(
     b = temp;
 }
 
-template<typename Tkey, typename Tval, typename Compare>
-bool FixedSizeHeap<Tkey, Tval, Compare>::contains(const Tkey& key)
+template<typename Tkey, typename Tval, typename Compare, typename Hasher>
+bool FixedSizeHeap<Tkey, Tval, Compare, Hasher>::contains(const Tkey& key) const
 {
     return (_m.find(key) != _m.end());
 }
 
-template<typename Tkey, typename Tval, typename Compare>
-Tval& FixedSizeHeap<Tkey, Tval, Compare>::get(const Tkey& key) const
+template<typename Tkey, typename Tval, typename Compare, typename Hasher>
+bool FixedSizeHeap<Tkey, Tval, Compare, Hasher>::contains(Tkey&& key) const
+{
+    return (_m.find(key) != _m.end());
+}
+
+template<typename Tkey, typename Tval, typename Compare, typename Hasher>
+Tval& FixedSizeHeap<Tkey, Tval, Compare, Hasher>::get(const Tkey& key)
 {
     return _v[_m[key]].second;
 }
 
-template<typename Tkey, typename Tval, typename Compare>
-void FixedSizeHeap<Tkey, Tval, Compare>::set(const Tkey& key, const Tval& val)
+template<typename Tkey, typename Tval, typename Compare, typename Hasher>
+Tval& FixedSizeHeap<Tkey, Tval, Compare, Hasher>::get(Tkey&& key)
+{
+    return _v[_m[key]].second;
+}
+
+template<typename Tkey, typename Tval, typename Compare, typename Hasher>
+void FixedSizeHeap<Tkey, Tval, Compare, Hasher>::set(const Tkey& key, const Tval& val)
 {
     change(
         key,
@@ -177,8 +208,8 @@ void FixedSizeHeap<Tkey, Tval, Compare>::set(const Tkey& key, const Tval& val)
     );
 }
 
-template<typename Tkey, typename Tval, typename Compare>
-void FixedSizeHeap<Tkey, Tval, Compare>::set(const Tkey& key, Tval&& val)
+template<typename Tkey, typename Tval, typename Compare, typename Hasher>
+void FixedSizeHeap<Tkey, Tval, Compare, Hasher>::set(const Tkey& key, Tval&& val)
 {
     change(
         key,

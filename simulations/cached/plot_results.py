@@ -33,6 +33,12 @@ if __name__ == '__main__':
         cache_hits = np.array(sim['cache_hits'])
         cache_refs = np.array(sim['cache_refs'])
 
+    # calculating averages
+    avg = lambda x: (x * np.arange(0, len(x))).sum() / x.sum()
+    avg_fanout = avg(fanout)
+    avg_out_packets = avg(outgoing_packets)
+    avg_out_lookups = avg(outgoing_lookups)
+
     # plotting results
 
     plt.figure(0)
@@ -52,7 +58,7 @@ if __name__ == '__main__':
     plt.tight_layout()
 
     plt.figure(2)
-    plt.title('Received packets')
+    plt.title(f'Received packets')
     plt.bar(range(P), packets.sum(axis=0))
     plt.xticks(range(P), range(P))
     plt.xlabel('Processor')
@@ -60,7 +66,7 @@ if __name__ == '__main__':
     plt.tight_layout()
 
     plt.figure(3)
-    plt.title('Lookup requests')
+    plt.title(f'Lookup requests')
     plt.bar(range(P), lookups.sum(axis=0))
     plt.xticks(range(P), range(P))
     plt.xlabel('Processor')
@@ -69,7 +75,7 @@ if __name__ == '__main__':
 
     plt.figure(4)
     plt.bar(range(0,P+1), fanout)
-    plt.title('Fanout distribution')
+    plt.title(f'Fanout distribution, avg={avg_fanout:.3}')
     plt.xlabel('Fanout')
     plt.xticks(range(0,P+1), range(0,P+1), rotation=0)
     plt.yticks(None, None)
@@ -78,7 +84,7 @@ if __name__ == '__main__':
 
     plt.figure(5)
     plt.bar(range(0,P+1), outgoing_packets)
-    plt.title('Outgoing packets distribution')
+    plt.title(f'Outgoing packets distribution, avg={avg_out_packets:.3}')
     plt.xlabel('Number of outgoing packets')
     plt.xticks(range(0,P+1), range(0,P+1))
     plt.yticks(None, None)
@@ -87,7 +93,7 @@ if __name__ == '__main__':
 
     plt.figure(6)
     plt.bar(range(0,D+1), outgoing_lookups)
-    plt.title('Outgoing lookups distribution')
+    plt.title(f'Outgoing lookups distribution, avg={avg_out_lookups:.3}')
     plt.xlabel('Number of outgoing lookups')
     plt.xticks(range(0,D+1), range(0,D+1), rotation=90)
     plt.yticks(None, None)

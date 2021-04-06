@@ -1,5 +1,6 @@
 #include <iostream>
 #include <vector>
+#include <numeric>
 
 #include <dataset.hpp>
 #include <chronometer.hpp>
@@ -18,6 +19,10 @@ int main(int argc, char **argv)
     if (!set_cmdline_args(argc, argv, param))
 		return -1;
 
+	ColMajorDataset<int> ds_counts("counts.txt");
+	ds_counts.import();
+	std::vector<int> counts = ds_counts.get_features()[0];
+
     std::cout << "Reading dataset ... " << std::flush;
     chronometer.start();
 	RowMajorDataset<uint32_t> dataset(param);
@@ -29,15 +34,24 @@ int main(int argc, char **argv)
 	const int N = queries.size();
 
 	std::vector<int> sizes(D);
-	for (auto& s : sizes)
-		s = 100;
+	std::transform(
+		counts.begin(), counts.end(), sizes.begin(),
+		[](int s)
+		{
+			if (s <= 100)
+				return s;
+			return static_cast<int>(s * 0.01);
+		}
+	);
+	int aggregate_size = std::accumulate(sizes.begin(), sizes.end(), 0);
 
     /// Starting simulations
 	for (int P : {16})
 	{
 		std::cout << "P = " << P << " ... ";
     	LookupProtocol<Sharding::Random, uint32_t> protocol(P);
-		Cache<Policy::LFU, Mode::Private, uint32_t> cache(sizes, P, D);
+		//Cache<Policy::LFU, Mode::Private, uint32_t> cache(sizes, P, D);
+		Cache<Policy::LFU, Mode::Shared, uint32_t> cache(aggregate_size, P, D);
 
 		//Results results = noncached_simulation(queries, P, protocol);
 		Results results = cached_simulation(queries, P, protocol, cache);
