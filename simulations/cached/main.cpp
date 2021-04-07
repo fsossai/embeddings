@@ -9,10 +9,13 @@
 
 int main(int argc, char **argv)
 {
+	if (argc != 3)
+	{
+		std::cerr << "ERROR: expecting 2 input arguments\n";
+		return -1;
+	}
+
     Chronometer chronometer;
-
-	std::vector<int> counts = parse_vector<int>(std::string(argv[2]));
-
     std::cout << "Reading dataset ... " << std::flush;
     chronometer.start();
 	auto queries = parse_vector_of_fvectors<uint32_t>(std::string(argv[1]));
@@ -21,6 +24,7 @@ int main(int argc, char **argv)
 	const int D = queries[0].size();
 	const int N = queries.size();
 
+	auto counts = parse_vector<int>(std::string(argv[2]));
 	std::vector<int> sizes(D);
 	std::transform(
 		counts.begin(), counts.end(), sizes.begin(),
