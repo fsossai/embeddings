@@ -51,24 +51,3 @@ int main(int argc, char **argv)
 
     return 0;
 }
-
-bool set_cmdline_args(int argc, char **argv, parser_parameters& param)
-{
-	if (argc == 1)
-	{
-		std::cout << "ERROR: specify input file" << std::endl;
-		return false;
-	}
-
-	if (argc >= 2)
-	{
-		param.filename = argv[1];
-		param.max_samples = std::numeric_limits<int>::max();
-	}
-	if (argc >= 3)
-	{
-		param.max_samples = std::stoi(argv[2]);
-	}
-
-	return true;
-}

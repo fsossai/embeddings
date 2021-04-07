@@ -96,6 +96,15 @@ std::vector<std::vector<uint32_t>> parse_vector_of_fvectors(std::string filename
 }
 
 template<>
+std::vector<std::vector<uint64_t>> parse_vector_of_fvectors(std::string filename)
+{
+    return _core_parse_vector_of_fvectors<uint64_t>(filename,
+        [](const auto& s)
+        { return static_cast<uint64_t>(std::stoull(s)); }
+    );
+}
+
+template<>
 std::vector<std::vector<int>> parse_vector_of_fvectors(std::string filename)
 {
     return _core_parse_vector_of_fvectors<int>(filename,
@@ -140,7 +149,7 @@ _core_parse_vector_of_fvectors(std::string filename, Converter converter)
     if (!std::getline(file, line))
         return std::vector<std::vector<T>>{};
 
-    // parsing first line establishing the maximal size
+    // parsing first line establishing the maximum size
     std::getline(file, line);
 	const int max_size = std::count(
         line.begin(), line.end(), default_separator) + 1;
