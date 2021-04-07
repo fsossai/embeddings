@@ -23,6 +23,7 @@ if __name__ == '__main__':
     parser.description = 'Computing alpha correlation of pairs of categorical features'
     parser.add_argument('--files', '-f', type=str, default=None, required=True)
     parser.add_argument('--order', '-o', type=int, default=2)
+    parser.add_argument('--save', '-s', action="store_true", default=False)
     args = parser.parse_args()
 
     column_selection = bigdatatools.get_range_list(args.column_selection)
@@ -124,14 +125,30 @@ if __name__ == '__main__':
             ))
             C[i, j] = A[A_location]
 
+    # D
+    # custom reordering
+    D_order = [33,14,35,23,34,24,36,15,28,27,21,25,16,18,37,20,17,31,29,38,22,30,39,32,19,26]
+
+    # filling D
+    D = np.empty(tuple([nsel] * args.order)) # permutation of A
+    D[:] = np.nan
+    for i in range(nsel):
+        for j in range(nsel):
+            A_location = tuple(sorted(
+                [D_order[i] - offset, D_order[j] - offset]
+            ))
+            D[i, j] = A[A_location]
+
     t = time() - t
     print(f'Elapsed time\t: {t:.5} sec')
 
     # saving to file
     timestamp = str(int(time()))
-    np.save('alphaA_' + timestamp, A)
-    np.save('alphaB_' + timestamp, B)
-    np.save('alphaC_' + timestamp, C)
+    if args.save:
+        np.save('alpha' + timestamp + '_A', A)
+        np.save('alpha' + timestamp + '_B', B)
+        np.save('alpha' + timestamp + '_C', C)
+        np.save('alpha' + timestamp + '_D', D)
 
     # plotting A
     plt.figure(0)
@@ -142,7 +159,8 @@ if __name__ == '__main__':
     plt.colorbar()
     plt.grid(True)
     plt.tight_layout()
-    plt.savefig('alphaA_' + timestamp + '.png')
+    if args.save:
+        plt.savefig('alpha' + timestamp + '_A.png')
 
     # plotting B
     plt.figure(1)
@@ -153,7 +171,8 @@ if __name__ == '__main__':
     plt.colorbar()
     plt.grid(True)
     plt.tight_layout()
-    plt.savefig('alphaB_' + timestamp + '.png')
+    if args.save:
+        plt.savefig('alpha' + timestamp + '_B.png')
 
     # plotting C
     plt.figure(2)
@@ -164,6 +183,19 @@ if __name__ == '__main__':
     plt.colorbar()
     plt.grid(True)
     plt.tight_layout()
-    plt.savefig('alphaC_' + timestamp + '.png')
+    if args.save:
+        plt.savefig('alpha' + timestamp + '_C.png')
+
+    # plotting D
+    plt.figure(3)
+    plt.title('Alpha matrix - Custom reordering')
+    plt.imshow(D)
+    plt.xticks(range(nsel), D_order, rotation=90)
+    plt.yticks(range(nsel), D_order)
+    plt.colorbar()
+    plt.grid(True)
+    plt.tight_layout()
+    if args.save:
+        plt.savefig('alpha' + timestamp + '_D.png')
 
     plt.show()
