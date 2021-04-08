@@ -1,24 +1,29 @@
+import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-import seaborn
 import argparse
-from glob import glob
-import sys
+import seaborn
 import json
+import sys
+import os
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--input-json','-i', type=str, required=True)
+    parser.add_argument('--save','-s', action="store_true", default=False)
     args = parser.parse_args()
 
     # checking input arguments
-    if len(glob(args.input_json)) == 0:
+    if not os.path.isfile(args.input_json):
         print('ERROR: file not found')
         sys.exit(-1)
 
+    # loading JSON simulation data
     with open(args.input_json, 'r') as f:
         sim = json.load(f)
+
+    # getting the name of the simulation
+    name = os.path.splitext(args.input_json)[0]
 
     P, D, N = sim['processors'], sim['tables'], sim['queries']
     
@@ -39,6 +44,11 @@ if __name__ == '__main__':
     avg_out_packets = avg(outgoing_packets)
     avg_out_lookups = avg(outgoing_lookups)
 
+    # calculating load imbalance
+    dispersion = lambda x: x.std() / x.mean()
+    packets_imb = dispersion(packets.sum(axis=0))
+    lookups_imb = dispersion(lookups.sum(axis=0))
+
     # plotting results
 
     plt.figure(0)
@@ -48,6 +58,8 @@ if __name__ == '__main__':
     plt.xticks(range(P), range(P))
     plt.yticks(range(P), range(P))
     plt.tight_layout()
+    if args.save:
+        plt.savefig(name + '_PM.png')
 
     plt.figure(1)
     plt.title('Lookups matrix')
@@ -56,22 +68,28 @@ if __name__ == '__main__':
     plt.xticks(range(P), range(P))
     plt.yticks(range(P), range(P))
     plt.tight_layout()
+    if args.save:
+        plt.savefig(name + '_LM.png')
 
     plt.figure(2)
-    plt.title(f'Received packets')
+    plt.title(f'Received packets, imbalance={packets_imb:.3}')
     plt.bar(range(P), packets.sum(axis=0))
     plt.xticks(range(P), range(P))
     plt.xlabel('Processor')
     plt.ylabel('Number of received packets')
     plt.tight_layout()
+    if args.save:
+        plt.savefig(name + '_RP.png')
 
     plt.figure(3)
-    plt.title(f'Lookup requests')
+    plt.title(f'Lookup requests, imbalance={lookups_imb:.3}')
     plt.bar(range(P), lookups.sum(axis=0))
     plt.xticks(range(P), range(P))
     plt.xlabel('Processor')
     plt.ylabel('Number of lookup requests')
     plt.tight_layout()
+    if args.save:
+        plt.savefig(name + '_LR.png')
 
     plt.figure(4)
     plt.bar(range(0,P+1), fanout)
@@ -81,6 +99,8 @@ if __name__ == '__main__':
     plt.yticks(None, None)
     plt.ylabel('Count')
     plt.tight_layout()
+    if args.save:
+        plt.savefig(name + '_F.png')
 
     plt.figure(5)
     plt.bar(range(0,P+1), outgoing_packets)
@@ -90,6 +110,8 @@ if __name__ == '__main__':
     plt.yticks(None, None)
     plt.ylabel('Count')
     plt.tight_layout()
+    if args.save:
+        plt.savefig(name + '_OP.png')
 
     plt.figure(6)
     plt.bar(range(0,D+1), outgoing_lookups)
@@ -99,6 +121,8 @@ if __name__ == '__main__':
     plt.yticks(None, None)
     plt.ylabel('Count')
     plt.tight_layout()
+    if args.save:
+        plt.savefig(name + '_OL.png')
 
     if cache_hits is not None:
         plt.figure(7)
@@ -110,6 +134,28 @@ if __name__ == '__main__':
         plt.xticks(range(D), range(D), rotation=90)
         plt.yticks(range(P), range(P))
         plt.tight_layout()
+        if args.save:
+            plt.savefig(name + '_C.png')
+
+        plt.figure(8)
+        plt.title('Cache hit-rates by table')
+        plt.bar(range(D), cache_hits.sum(axis=0) / cache_refs.sum(axis=0))
+        plt.xlabel('Table index')
+        plt.ylabel('Hit-rate')
+        plt.xticks(range(D), range(D), rotation=90)
+        plt.tight_layout()
+        if args.save:
+            plt.savefig(name + '_CT.png')
+
+        plt.figure(9)
+        plt.title('Cache hit-rates by processor')
+        plt.bar(range(P), cache_hits.sum(axis=1) / cache_refs.sum(axis=1))
+        plt.xlabel('Processor index')
+        plt.ylabel('Hit-rate')
+        plt.xticks(range(P), range(P))
+        plt.tight_layout()
+        if args.save:
+            plt.savefig(name + '_CP.png')
 
 
     plt.show()
