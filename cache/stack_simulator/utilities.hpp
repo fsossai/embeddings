@@ -16,7 +16,7 @@ void export_csv(
     const std::vector<std::map<uint64_t, float>>& hitrates_LFU,
     const std::vector<std::map<uint64_t, float>>& hitrates_OPT,
     const std::string& basename,
-    const std::vector<int>& selected_columns);
+    std::vector<int> selected_columns);
 
 void export_perfprof(
     const std::string& output_name,
@@ -50,9 +50,10 @@ void export_csv(
     const std::vector<std::map<uint64_t, float>>& hitrates_LFU,
     const std::vector<std::map<uint64_t, float>>& hitrates_OPT,
     const std::string& basename,
-    const std::vector<int>& selected_columns)
+    std::vector<int> selected_columns)
 {
 	const int N = hitrates_LRU.size();
+	std::sort(selected_columns.begin(), selected_columns.end());
 	auto column_it = selected_columns.begin();
 	for (int i = 0; i<N; i++)
 	{
