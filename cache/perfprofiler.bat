@@ -3,7 +3,7 @@ echo Generating the performance profile plot
 
 <NUL set /p=max...
 python perfprofiler.py                                          ^
- stack_simulator\comparison.csv                                 ^
+ results\comparison.csv                                         ^
  --xlabel           "Ratio"                                     ^
  --ylabel           "Percentage"                                ^
  --title            "Policies comparison - Performance profile" ^
@@ -14,7 +14,7 @@ python perfprofiler.py                                          ^
 echo OK
 <NUL set /p=maxr...
 python perfprofiler.py                                          ^
- stack_simulator\comparison.csv                                 ^
+ results\comparison.csv                                         ^
  --xlabel           "Ratio"                                     ^
  --ylabel           "Percentage"                                ^
  --title            "Policies comparison - Performance profile" ^

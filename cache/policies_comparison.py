@@ -13,7 +13,7 @@ import re
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--files', '-F', type=str, required=True)
+    parser.add_argument('--files', '-f', type=str, required=True)
     args = parser.parse_args()
 
     all_files = glob(args.files)
@@ -43,7 +43,7 @@ if __name__ == '__main__':
     
     # setting axis limits
     ylim = [0, 1]
-    xticks = range(0,21,5)
+    xticks = range(0,26,5)
     k = 0
     for i in range(N1):
         for j in range(N2):
@@ -51,20 +51,7 @@ if __name__ == '__main__':
                 title='Feature ' + str(feats[k]))
             k += 1
 
-    # xscale = 'linear'
-    # xlabel = 'Cache size (w.r.t table size)'
-    # axs[0, 0].set(ylabel='Hit-rate', xscale=xscale)
-    # axs[0, 1].set(xscale=xscale)
-    # axs[1, 0].set(xlabel=xlabel, ylabel='Hit-rate', xscale=xscale)
-    # axs[1, 1].set(xlabel=xlabel, xscale=xscale)
-
-    # The four least frequent
-    # axs[0, 0].plot(hitrates[19]['size'], hitrates[19]['hitrate'])
-    # axs[0, 1].plot(hitrates[30]['size'], hitrates[30]['hitrate'])
-    # axs[1, 0].plot(hitrates[26]['size'], hitrates[26]['hitrate'])
-    # axs[1, 1].plot(hitrates[32]['size'], hitrates[32]['hitrate'])
-
     plt.legend()
-    fig.suptitle('LRU/LFU Hit-rate curves comparison')
+    fig.suptitle('LRU/LFU/OPT Hit-rate curves comparison')
     plt.tight_layout()
     plt.show()

@@ -26,7 +26,7 @@ void export_perfprof(
 
 std::vector<float> get_comma_separated_floats(const std::string& s);
 
-constexpr int OUTPUT_FP_PRECISION = 5;
+constexpr int OUTPUT_FP_PRECISION = 8;
 
 /*** DEFINITIONS ***/
 

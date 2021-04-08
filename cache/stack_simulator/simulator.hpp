@@ -230,8 +230,10 @@ Simulator<Policy::LRU, T>::hitrates_relative(
                     (cache_max_size < b.first.first);
             }
         );
-        const auto [key, val] = *match;
-        filtered[key] = val;
+        const auto& [key, val] = *match;
+        const auto& [size, _] = key;
+        const auto& new_key = std::make_pair(size, static_cast<float>(size) / nunique);
+        filtered[new_key] = val;
     }
     return filtered;
 }
