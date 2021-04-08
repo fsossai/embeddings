@@ -85,6 +85,14 @@ std::vector<std::vector<T>> parse_vector_of_fvectors(std::string filename)
     return data;
 }
 
+template<>
+std::vector<std::vector<std::string>> parse_vector_of_fvectors(std::string filename)
+{
+    return _core_parse_vector_of_fvectors<std::string>(filename,
+        [](const auto& s)
+        { return std::move(s); }
+    );
+}
 
 template<>
 std::vector<std::vector<uint32_t>> parse_vector_of_fvectors(std::string filename)
@@ -118,7 +126,7 @@ std::vector<std::vector<float>> parse_vector_of_fvectors(std::string filename)
 {
     return _core_parse_vector_of_fvectors<float>(filename,
         [](const auto& s)
-        { return static_cast<int>(std::stof(s)); }
+        { return std::stof(s); }
     );
 }
 
@@ -127,7 +135,7 @@ std::vector<std::vector<double>> parse_vector_of_fvectors(std::string filename)
 {
     return _core_parse_vector_of_fvectors<double>(filename,
         [](const auto& s)
-        { return static_cast<int>(std::stod(s)); }
+        { return std::stod(s); }
     );
 }
 
@@ -136,7 +144,6 @@ std::vector<T> parse_vector(std::string filename)
 {
     return parse_vector_of_dvectors<T>(filename)[0];
 }
-
 
 template<typename T, typename Converter>
 std::vector<std::vector<T>>
