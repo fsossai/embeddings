@@ -28,6 +28,7 @@ public:
     std::vector<int> outgoing_lookups;
     Matrix<int> *cache_hits = nullptr;
     Matrix<int> *cache_refs = nullptr;
+    int cache_aggregate_size;
     std::vector<int> *cache_sizes = nullptr;
     std::string cache_policy = "";
     std::string cache_mode = "";
@@ -148,6 +149,7 @@ void Results::save(std::string output_directory)
     if (cache_hits != nullptr)
     {
         file << ",\n";
+        file << "\"aggregate_size\" : " << cache_aggregate_size << ",\n";
         file << "\"cache_sizes\" : " << vector_to_string(*cache_sizes) << ",\n";
         file << "\"cache_hits\" : " << cache_hits->to_string() << ",\n";
         file << "\"cache_refs\" : " << cache_refs->to_string() << "\n";
@@ -192,6 +194,7 @@ Results cached_simulation(
     results.cache_refs = &cache.refs;
     results.cache_sizes = &cache.sizes;
     results.cache_policy = cache.policy;
+    results.cache_aggregate_size = cache.aggregate_size;
     results.cache_mode = cache.mode;
     results.sharding = protocol.name;
 
@@ -298,6 +301,7 @@ public:
     int P, D;
     const std::string policy = "LFU";
     const std::string mode = "Private";
+    int aggregate_size;
     Matrix<int> hits;
     Matrix<int> refs;
 
@@ -319,6 +323,7 @@ public:
             for (auto size : sizes)
                 p.push_back(FixedSizeHeap<Tkey, uint64_t, std::less<uint64_t>>(size));
         }
+        aggregate_size = std::accumulate(sizes.begin(), sizes.end(), 0);
     }
 
     bool reference(int p, int table, Tkey id)
@@ -350,6 +355,7 @@ public:
     int P, D;
     const std::string policy = "LFU";
     const std::string mode = "Shared";
+    int aggregate_size;
     Matrix<int> hits;
     Matrix<int> refs;
 
@@ -362,6 +368,7 @@ public:
         _system.resize(P,
             FixedSizeHeap<std::pair<int, Tkey>, uint64_t,
                 std::less<uint64_t>, pair_hash>(size));
+        aggregate_size = size;
     }
 
     bool reference(int p, int table, Tkey id)

@@ -30,9 +30,12 @@ int main(int argc, char **argv)
 		counts.begin(), counts.end(), sizes.begin(),
 		[](int s)
 		{
+			auto fraction = s * 0.01;
 			if (s <= 100)
 				return s;
-			return static_cast<int>(s * 0.01);
+			if (fraction < 100)
+				return 100;
+			return static_cast<int>(fraction);
 		}
 	);
 	int aggregate_size = std::accumulate(sizes.begin(), sizes.end(), 0);
