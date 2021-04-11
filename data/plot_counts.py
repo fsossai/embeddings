@@ -72,7 +72,7 @@ if __name__ == '__main__':
         setup_histogram(
             nuniques=list(reversed(df['nunique'].to_list())),
             highlighted=list(reversed(df['highlighted'].to_list())),
-            highlight=1,
+            highlight=args.highlight,
             ticks=list(reversed(df['table'])),
             linear_plot=args.linear_plot,
             top=args.top,
@@ -82,7 +82,7 @@ if __name__ == '__main__':
         setup_histogram(
             nuniques=df['nunique'].to_list(),
             highlighted=df['highlighted'].to_list(),
-            highlight=1,
+            highlight=args.highlight,
             ticks=df['table'],
             linear_plot=args.linear_plot,
             top=args.top,
