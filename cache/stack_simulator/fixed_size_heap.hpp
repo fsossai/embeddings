@@ -38,6 +38,8 @@ public:
 
     void set(const Tkey& key, Tval&& val);
 
+    const std::vector<std::pair<Tkey, Tval>>& get_raw_heap();
+
 private:
     std::vector<std::pair<Tkey, Tval>> _v;
     std::unordered_map<Tkey, uint64_t, Hasher> _m;
@@ -218,5 +220,12 @@ void FixedSizeHeap<Tkey, Tval, Compare, Hasher>::set(const Tkey& key, Tval&& val
             return val;
         }
     );
+}
+
+template<typename Tkey, typename Tval, typename Compare, typename Hasher>
+const std::vector<std::pair<Tkey, Tval>>&
+FixedSizeHeap<Tkey, Tval, Compare, Hasher>::get_raw_heap()
+{
+    return _v;
 }
 

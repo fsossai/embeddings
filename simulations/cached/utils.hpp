@@ -9,6 +9,9 @@
 char default_separator = ',';
 
 template<typename T>
+std::string vector_to_string(std::vector<T>& v);
+
+template<typename T>
 std::vector<std::vector<T>> parse_vector_of_dvectors(std::string filename);
 
 template<typename T>
@@ -23,6 +26,20 @@ _core_parse_vector_of_fvectors(std::string filename, Converter converter);
 
 
 /*** DEFINITIONS ***/
+
+template<typename T>
+std::string vector_to_string(std::vector<T>& v)
+{
+    std::stringstream ss("");
+    ss << '[';
+
+    for (int i = 0; i < v.size() - 1; ++i)
+        ss << v[i] << ',';
+    
+    ss << v[v.size() - 1] << ']';
+
+    return ss.str();
+}
 
 template<typename T>
 std::vector<std::vector<T>> parse_vector_of_dvectors(std::string filename)

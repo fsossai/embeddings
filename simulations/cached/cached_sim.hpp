@@ -11,11 +11,9 @@
 #include <fixed_size_heap.hpp>
 #include "matrix.hpp"
 #include "sharding.hpp"
+#include "utils.hpp"
 
 std::string get_timestamp(std::string format);
-
-template<typename T>
-std::string vector_to_string(std::vector<T>& v);
 
 class Results
 {
@@ -28,6 +26,7 @@ public:
     std::vector<int> outgoing_lookups;
     Matrix<int> *cache_hits = nullptr;
     Matrix<int> *cache_refs = nullptr;
+    Matrix<int> *cache_footprint = nullptr;
     int cache_aggregate_size;
     std::vector<int> *cache_sizes = nullptr;
     std::string cache_policy = "";
@@ -80,21 +79,6 @@ std::string get_timestamp(std::string format)
     std::string str(buffer);
 
     return str;
-}
-
-
-template<typename T>
-std::string vector_to_string(std::vector<T>& v)
-{
-    std::stringstream ss("");
-    ss << '[';
-
-    for (int i = 0; i < v.size() - 1; ++i)
-        ss << v[i] << ',';
-    
-    ss << v[v.size() - 1] << ']';
-
-    return ss.str();
 }
 
 /// RESULTS
@@ -152,7 +136,15 @@ void Results::save(std::string output_directory)
         file << "\"aggregate_size\" : " << cache_aggregate_size << ",\n";
         file << "\"cache_sizes\" : " << vector_to_string(*cache_sizes) << ",\n";
         file << "\"cache_hits\" : " << cache_hits->to_string() << ",\n";
-        file << "\"cache_refs\" : " << cache_refs->to_string() << "\n";
+        file << "\"cache_refs\" : " << cache_refs->to_string();
+
+        if (cache_footprint != nullptr)
+        {
+            file << ",\n";
+            file << "\"cache_footprint\" : " << cache_footprint->to_string() << "\n";
+        }
+        else
+            file << '\n';
     }
     else
         file << '\n';
@@ -384,6 +376,21 @@ public:
         // cache miss
         _system[p].insert(key, 1);
         return false;
+    }
+
+    Matrix<int> get_tables_footprint()
+    {
+        Matrix<int> fp(P, D);
+        fp.fill(0);
+        for (int p = 0; p < P; ++p)
+        {
+            for (const auto& [key, val] : _system[p].get_raw_heap())
+            {
+                const auto& [table, id] = key;
+                ++fp.at(p, table);
+            }
+        }
+        return fp;
     }
 
 private:
