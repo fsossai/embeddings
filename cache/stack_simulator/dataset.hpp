@@ -135,7 +135,7 @@ bool RowMajorDataset<std::string>::import()
 
 	while (row_counter < max && std::getline(file, current_sample))
 	{
-		int pos_start = 0, pos_end = 0;
+		size_t pos_start = 0, pos_end = 0;
 		int column = 0;
 		std::vector<std::string> sample;
 		
@@ -195,7 +195,7 @@ bool RowMajorDataset<uint32_t>::import()
 
 	while (row_counter < max && std::getline(file, current_sample))
 	{
-		int pos_start = 0, pos_end = 0;
+		size_t pos_start = 0, pos_end = 0;
 		int column = 0;
 		std::vector<uint32_t> sample;
 		sample.reserve(sample_size);
@@ -401,7 +401,7 @@ bool ColMajorDataset<uint32_t>::import()
 
 	while (row_counter < max && std::getline(file, current_sample))
 	{
-		int pos_start = 0, pos_end = 0;
+		size_t pos_start = 0, pos_end = 0;
 		int column = 0, sample_column = 0;
 		
 		pos_end = current_sample.find(separator, pos_start);
