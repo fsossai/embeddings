@@ -164,7 +164,7 @@ _core_parse_vector_of_fvectors(std::string filename, Converter converter)
 
     while (std::getline(file, line))
     {
-        int pos_start = 0, pos_end = 0, column = 0;
+        size_t pos_start = 0, pos_end = 0, column = 0;
 		std::vector<T> parsed_line;
 		parsed_line.reserve(max_size);
 		
