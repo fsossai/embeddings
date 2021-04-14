@@ -373,7 +373,7 @@ public:
 
     bool reference(int p, int table, Tkey id)
     {
-        const std::pair<int, int> key = std::make_pair(table, id);
+        const std::pair<int, Tkey> key = std::make_pair(table, id);
         ++refs.at(p, table);
         if (_system[p].contains(key)) // cache hit
         {

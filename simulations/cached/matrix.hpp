@@ -22,7 +22,7 @@ public:
 
     T& at(uint32_t i, uint32_t j)
     {
-        return _matrix[i*N + j];
+        return _matrix[i*M + j];
     }
 
     void print(std::ostream& stream, char sep = '\t', char newline = '\n')
@@ -31,10 +31,16 @@ public:
         {
             for (uint32_t j = 0; j < M - 1; ++j)
             {
-                stream << _matrix[i*N + j] << sep;
+                stream << _matrix[i*M + j] << sep;
             }
-            stream << _matrix[i*N + M - 1] << newline;
+            stream << _matrix[i*M + M - 1] << newline;
         }
+    }
+
+    void fill(const T& val)
+    {
+        for (auto& v : _matrix)
+            v = val;
     }
 
     std::string to_string()
@@ -46,16 +52,16 @@ public:
             ss << '[';
             for (uint32_t j = 0; j < M - 1; ++j)
             {
-                ss << _matrix[i*N + j] << ',';
+                ss << _matrix[i*M + j] << ',';
             }
-            ss << _matrix[i*N + M - 1] << "],";
+            ss << _matrix[i*M + M - 1] << "],";
         }
         ss << '[';
         for (uint32_t j = 0; j < M - 1; ++j)
         {
-            ss << _matrix[(N-1)*N + j] << ',';
+            ss << _matrix[(N-1)*M + j] << ',';
         }
-        ss << _matrix[(N-1)*N + M - 1] << "]]";
+        ss << _matrix[(N-1)*M + M - 1] << "]]";
 
         return ss.str();
     }
