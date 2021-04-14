@@ -43,10 +43,13 @@ int main(int argc, char **argv)
     /// Starting simulations
 	for (int P : {16})
 	{
-		std::cout << "P = " << P << " ... ";
     	LookupProtocol<Sharding::Random, uint32_t> protocol(P);
 		//Cache<Policy::LFU, Mode::Private, uint32_t> cache(sizes, P, D);
 		Cache<Policy::LFU, Mode::Shared, uint32_t> cache(aggregate_size, P, D);
+
+		std::cout << "P = " << P << ", ";
+		std::cout << "Protocol: " << protocol.name << ", ";
+		std::cout << "Cache: " << cache.policy << " " << cache.mode << " ... ";
 
 		//Results results = noncached_simulation(queries, P, protocol);
 		Results results = cached_simulation(queries, P, protocol, cache);

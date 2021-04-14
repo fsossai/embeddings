@@ -157,5 +157,5 @@ if __name__ == '__main__':
         if args.save:
             plt.savefig(name + '_CP.png')
 
-
-    plt.show()
+    if not args.save:
+        plt.show()
