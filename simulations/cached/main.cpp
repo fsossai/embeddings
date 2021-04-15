@@ -53,6 +53,7 @@ int main(int argc, char **argv)
 
 		//Results results = noncached_simulation(queries, P, protocol);
 		Results results = cached_simulation(queries, P, protocol, cache);
+		results.cache_sizes = sizes;
 		auto footprint = cache.get_tables_footprint();
 		results.cache_footprint = &footprint;
 		results.save("results");

@@ -34,9 +34,16 @@ if __name__ == '__main__':
     outgoing_lookups = np.array(sim['outgoing_lookups'])
     fanout = np.array(sim['fanout'])
     cache_hits = None
+    df_footprint = None
     if 'cache_hits' in sim:
         cache_hits = np.array(sim['cache_hits'])
         cache_refs = np.array(sim['cache_refs'])
+        cache_sizes = np.array(sim['cache_sizes'])
+        if 'cache_footprint' in sim:
+            cache_footprint = sim['cache_footprint']
+            df_footprint = pd.DataFrame(cache_footprint)
+            df_footprint = df_footprint.reindex(index=df_footprint.index[::-1])
+            
 
     # calculating averages
     avg = lambda x: (x * np.arange(0, len(x))).sum() / x.sum()
@@ -156,6 +163,24 @@ if __name__ == '__main__':
         plt.tight_layout()
         if args.save:
             plt.savefig(name + '_CP.png')
+
+    if df_footprint is not None:
+        fig, axs = plt.subplots(2,1, gridspec_kw={'height_ratios': [P, 1]})
+        df_footprint.plot.barh(stacked=True, legend=False, ax=axs[0])
+        axs[0].set(ylabel='Processor index')
+        axs[0].set(title="Tables' cache footprint")
+        axs[0].set_xticks([])
+        axs[0].set_xticklabels([])
+        pd.DataFrame([cache_sizes]).plot.barh(stacked=True, legend=False, ax=axs[1])
+        axs[1].set(xlabel="Reference footprint")
+        axs[1].set_xticks([])
+        axs[1].set_yticks([])
+        axs[1].set_xticklabels([])
+        axs[1].set_yticklabels([])
+        fig.tight_layout()
+        
+        if args.save:
+            plt.savefig(name + '_FP.png')
 
     if not args.save:
         plt.show()
