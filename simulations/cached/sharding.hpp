@@ -84,6 +84,33 @@ private:
     std::vector<std::unordered_map<uint32_t, int>> _ltable;
 };
 
+template<>
+class LookupProtocol<Sharding::Hybrid, uint32_t>
+{
+public:
+    LookupProtocol(int P, std::string lookup_table_file) :
+        P(P),
+        _lookup_table_file(lookup_table_file)
+    {
+        _ltable = read_lookup_table<uint32_t>(lookup_table_file);
+    }
+
+    int lookup(int table, uint32_t id) const
+    {
+        int l = _ltable[table].at(id);
+        if (l != -1)
+            return l;
+        return id % P;
+    }
+
+    const std::string name = "Hybrid";
+
+private:
+    const std::string _lookup_table_file;
+    std::vector<std::unordered_map<uint32_t, int>> _ltable;
+    const int P;
+};
+
 
 /*** Lookup Table utilities ***/
 
