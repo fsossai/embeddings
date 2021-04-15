@@ -23,18 +23,20 @@ int main(int argc, char **argv)
 
 	const int D = queries[0].size();
 	const int N = queries.size();
+	const int min_size = 100;
+	const float size_relative = 0.01;
 
 	auto counts = parse_vector<int>(std::string(argv[2]));
 	std::vector<int> sizes(D);
 	std::transform(
 		counts.begin(), counts.end(), sizes.begin(),
-		[](int s)
+		[=](int s)
 		{
-			auto fraction = s * 0.01;
-			if (s <= 100)
+			auto fraction = s * size_relative;
+			if (s <= min_size)
 				return s;
-			if (fraction < 100)
-				return 100;
+			if (fraction < min_size)
+				return min_size;
 			return static_cast<int>(fraction);
 		}
 	);
@@ -54,6 +56,8 @@ int main(int argc, char **argv)
 		//Results results = noncached_simulation(queries, P, protocol);
 		Results results = cached_simulation(queries, P, protocol, cache);
 		results.cache_sizes = sizes;
+		results.cache_min_size = min_size;
+		results.cache_size_rel = size_relative;
 		auto footprint = cache.get_tables_footprint();
 		results.cache_footprint = &footprint;
 		results.save("results");

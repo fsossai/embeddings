@@ -28,6 +28,8 @@ public:
     Matrix<int> *cache_refs = nullptr;
     Matrix<int> *cache_footprint = nullptr;
     int cache_aggregate_size;
+    int cache_min_size;
+    float cache_size_rel;
     std::vector<int> *cache_sizes = nullptr;
     std::string cache_policy = "";
     std::string cache_mode = "";
@@ -133,6 +135,8 @@ void Results::save(std::string output_directory)
     if (cache_hits != nullptr)
     {
         file << ",\n";
+        file << "\"cache_min_size\" : " << cache_min_size << ",\n";
+        file << "\"cache_size_rel\" : " << cache_size_rel << ",\n";
         file << "\"aggregate_size\" : " << cache_aggregate_size << ",\n";
         file << "\"cache_sizes\" : " << vector_to_string(*cache_sizes) << ",\n";
         file << "\"cache_hits\" : " << cache_hits->to_string() << ",\n";
