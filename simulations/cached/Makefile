@@ -1,5 +1,5 @@
-include_dir="..\..\cache\stack_simulator"
-lib_dir="..\..\cache\stack_simulator"
+stacksim_inc="..\..\cache\stack_simulator"
+cxxopts_inc="..\..\cxxopts\include"
 
 simulation: main.cpp
-	g++ -std=c++20 -Ofast -o sim.exe -I${include_dir} -L${lib_dir} $^
+	g++ -std=c++20 -Ofast -o sim.exe -I${stacksim_inc} -I${cxxopts_inc} $^

@@ -77,7 +77,7 @@ public:
         return _ltable[table].at(id);
     }
 
-    const std::string name = "X";
+    const std::string name = "Custom";
 
 private:
     const std::string _lookup_table_file;
