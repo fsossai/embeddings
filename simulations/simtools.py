@@ -284,3 +284,13 @@ class MemorySystem:
         for _, q in queries.iterrows():
             lkup = self.lookup(index, q)
             self.fanout.append(len(set(lkup)))
+
+    def export_sharding(self, outputfile, numeric=True):
+        with open(outputfile, 'w') as f:
+            for t in self.tables:
+                row = []
+                current = self.tables[t]
+                for id, p in current.iteritems():
+                    row.append(f'{int(id, 16)}:{p},')
+                row[-1] = row[-1][:-1] + '\n'
+                f.write(''.join(row))
