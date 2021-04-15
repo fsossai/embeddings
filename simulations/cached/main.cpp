@@ -55,7 +55,7 @@ int main(int argc, char **argv)
 
 		//Results results = noncached_simulation(queries, P, protocol);
 		Results results = cached_simulation(queries, P, protocol, cache);
-		results.cache_sizes = sizes;
+		results.cache_sizes = &sizes;
 		results.cache_min_size = min_size;
 		results.cache_size_rel = size_relative;
 		auto footprint = cache.get_tables_footprint();
