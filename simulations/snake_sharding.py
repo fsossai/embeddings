@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import sys #D
+from time import time
 
 nu = [188070,13734,12134,6089,16175,3,6239,1170,37,142314,38457,36324,10,1889,5862,68,4,851,14,197990,86250,171445,30741,8138,54,33]
 
@@ -39,6 +39,9 @@ def find_suitable(i, items, assigned):
             if (i, item) not in assigned
         ), None)
 
+def send_to_p(table, snake, p, lookup_table):
+    for id in snake:
+        lookup_table[table, id] = p
 
 A = pd.read_csv('alpha.csv')
 mat = dict()
@@ -136,9 +139,11 @@ for i, j in vcx:
 print('OK')
 
 # filtering out singlets from vc
+filtering_level = 100
+print('Filtering level =', filtering_level)
 print('Filter out singles ... ', end='', flush=True)
 for i in vc:
-    vc[i] = vc[i][vc[i] > 1]
+    vc[i] = vc[i][vc[i] > filtering_level]
 print('OK')
 
 # random index reordering
@@ -153,20 +158,24 @@ for path in paths:
 print('OK')
 
 # Snake sharding
-P = 8 # fictious number of processors
-K = 100 # number of snakes to be selected for each path
+t = time()
+P = 16 # fictious number of processors
+K = vc[master_head].size # number of snakes to be selected for each path
 assigned = set()
-avg_snake_len = 0
+lookup_table = dict()
+iterations = 0
 for k in range(K):
-    if k % 10 == 0:
-        print(f'===> Selecting {k+1}/{K}')
     p = np.random.randint(P)
 
     # building master path
     h = paths[0][0]
-    starter = next(starters_gen[h])
+    starter = next(starters_gen[h], None)
+    if starter is None:
+        print('Reached end of master path')
+        break
     snake = build_snake(paths[0], vcx, starter, assigned)
-    print(len(snake), end=' ')
+    send_to_p(h, snake, p, lookup_table)
+
     # building other paths
     for path in paths[1:]:
         h = path[0]
@@ -180,11 +189,17 @@ for k in range(K):
         if starter is None:
             raise Exception(f'ERROR Unexpected abscence of starters for head = {h}')
         
-        piece = build_snake(path, vcx, starter, assigned)
-        snake += piece
-        print(len(piece), end=' ')
-    print()
-    avg_snake_len += len(snake)
-    
-avg_snake_len /= K
-print('Average snake length =', avg_snake_len)
+        snake = build_snake(path, vcx, starter, assigned)
+        send_to_p(h, snake, p, lookup_table)
+        
+    if (k+1) % 100 == 0:
+        perc = (k+1)/K * 100
+        print(f'===> Iteration {k+1}/{K}, {perc:.3} %', end='\t')
+        print(f'selected: {len(lookup_table)}')
+    iterations += 1
+
+t = time() - t
+perc = iterations/K * 100
+print(f'===> Iteration {iterations}/{K}, {perc:.4} %', end='\t')
+print(f'selected: {len(lookup_table)}')
+print('Elapsed time:', t)
