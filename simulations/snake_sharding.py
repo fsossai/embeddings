@@ -58,7 +58,7 @@ A = A[A['alpha'] >= alpha_filtering_level]
 path_code = dict()
 n_path_codes = 0
 for _, t in A.iterrows():
-    i, j, _ = t.to_numpy(dtype=np.int)
+    i, j, _ = t.to_numpy(dtype=np.int32)
     if (i not in path_code) and (j not in path_code):
         path_code[i] = n_path_codes
         path_code[j] = n_path_codes
@@ -148,6 +148,7 @@ for i in vc:
 print('OK')
 
 # random index reordering
+t = time()
 print('Index reordering ... ', end='', flush=True)
 master_head = paths[0][0]
 master_ids = np.random.permutation(vc[master_head].index)
@@ -156,7 +157,8 @@ starters_gen[master_head] = iter(master_ids)
 for path in paths:
     h = path[0]
     starters_gen[h] = iter(np.random.permutation(vc[h].index))
-print('OK')
+t = time() - t
+print(t)
 
 # Snake sharding
 t = time()
