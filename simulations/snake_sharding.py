@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 from time import time
 
 nu = [188070,13734,12134,6089,16175,3,6239,1170,37,142314,38457,36324,10,1889,5862,68,4,851,14,197990,86250,171445,30741,8138,54,33]
+filtering_level = 0
+alpha_filtering_level = 0.0
 
 def find_corresponding_right_index(s, key):
     i = s.index.names[0]
@@ -39,9 +41,9 @@ def find_suitable(i, items, assigned):
             if (i, item) not in assigned
         ), None)
 
-def send_to_p(table, snake, p, lookup_table):
-    for id in snake:
-        lookup_table[table, id] = p
+def send_to_p(path, snake, p, lookup_tables):
+    for table, id in zip(path, snake):
+        lookup_tables[table].append((id,p))
 
 A = pd.read_csv('alpha.csv')
 mat = dict()
@@ -50,7 +52,7 @@ for _,t in A.iterrows():
     mat[i,j] = a
 
 # filtering
-A = A[A['alpha'] > 0.99]
+A = A[A['alpha'] >= alpha_filtering_level]
 #print(A)
 # identifying the paths
 path_code = dict()
@@ -139,7 +141,6 @@ for i, j in vcx:
 print('OK')
 
 # filtering out singlets from vc
-filtering_level = 100
 print('Filtering level =', filtering_level)
 print('Filter out singles ... ', end='', flush=True)
 for i in vc:
@@ -162,7 +163,13 @@ t = time()
 P = 16 # fictious number of processors
 K = vc[master_head].size # number of snakes to be selected for each path
 assigned = set()
-lookup_table = dict()
+
+# initializing lookup tables
+lookup_tables = dict()
+for c in all_cols:
+    lookup_tables[c] = []
+
+selected = 0
 iterations = 0
 for k in range(K):
     p = np.random.randint(P)
@@ -174,7 +181,8 @@ for k in range(K):
         print('Reached end of master path')
         break
     snake = build_snake(paths[0], vcx, starter, assigned)
-    send_to_p(h, snake, p, lookup_table)
+    send_to_p(paths[0], snake, p, lookup_tables)
+    selected += len(snake)
 
     # building other paths
     for path in paths[1:]:
@@ -186,20 +194,33 @@ for k in range(K):
             find_suitable(h, starters_gen[h], assigned)
         )
 
-        if starter is None:
-            raise Exception(f'ERROR Unexpected abscence of starters for head = {h}')
+        if starter is not None:
+            snake = build_snake(path, vcx, starter, assigned)
+            selected += len(snake)
+            send_to_p(path, snake, p, lookup_tables)
         
-        snake = build_snake(path, vcx, starter, assigned)
-        send_to_p(h, snake, p, lookup_table)
-        
-    if (k+1) % 100 == 0:
+    if (k+1) % 1000 == 0:
         perc = (k+1)/K * 100
         print(f'===> Iteration {k+1}/{K}, {perc:.3} %', end='\t')
-        print(f'selected: {len(lookup_table)}')
+        print(f'selected: {selected}')
     iterations += 1
 
 t = time() - t
 perc = iterations/K * 100
 print(f'===> Iteration {iterations}/{K}, {perc:.4} %', end='\t')
-print(f'selected: {len(lookup_table)}')
+print(f'selected: {selected}')
 print('Elapsed time:', t)
+print()
+
+# exporting to sharding table
+print('Exporting to file ... ', end='', flush=True)
+with open('alpha_s.txt', 'w') as f:
+    for col in data.columns:
+        line = []
+        if col in lookup_tables:
+            for id, p in lookup_tables[col]:
+                line.append(f'{id}:{p}')
+        if len(line) == 0:
+            line = ['0:-1']
+        f.write(','.join(line) + '\n')
+print('OK')

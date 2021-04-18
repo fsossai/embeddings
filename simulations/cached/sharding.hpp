@@ -15,6 +15,7 @@ class Sharding
 public:
     class Random;
     class Custom;
+    class Hybrid;
 };
 
 template<typename T>
@@ -97,9 +98,9 @@ public:
 
     int lookup(int table, uint32_t id) const
     {
-        int l = _ltable[table].at(id);
-        if (l != -1)
-            return l;
+        auto item = _ltable[table].find(id);
+        if (item != _ltable[table].end() && item->second != -1)
+            return item->second;
         return id % P;
     }
 
