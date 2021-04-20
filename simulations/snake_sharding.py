@@ -112,7 +112,7 @@ paths = [
 
 # importing dataset
 print('Reading dataset ... ', end='', flush=True)
-data = pd.read_csv('cached\\p.csv', header=None)
+data = pd.read_csv('cached//p.csv', header=None)
 print('OK')
 
 # cross value_counts for every snake pair
