@@ -24,6 +24,7 @@ public:
     std::vector<int> fanout;
     std::vector<int> outgoing_packets;
     std::vector<int> outgoing_lookups;
+    Matrix<int> outgoing_tables;
     Matrix<int> *cache_hits = nullptr;
     Matrix<int> *cache_refs = nullptr;
     Matrix<int> *cache_footprint = nullptr;
@@ -91,6 +92,7 @@ Results::Results(int P, int D, int N) :
     fanout(std::vector<int>(P+1)),
     outgoing_packets(std::vector<int>(P+1)),
     outgoing_lookups(std::vector<int>(D+1)),
+    outgoing_tables(Matrix<int>(P, D)),
     P(P), D(D), N(N)
 { }
 
@@ -124,12 +126,10 @@ void Results::save(std::string output_directory)
     file << "\"sharding\" : " << '\"' << sharding << "\",\n";
     file << "\"packets\" : " << packets.to_string() << ",\n";
     file << "\"lookups\" : " << lookups.to_string() << ",\n";
-    file << "\"outgoing_packets\" : " <<
-        vector_to_string(outgoing_packets) << ",\n";
-    file << "\"outgoing_lookups\" : " <<
-        vector_to_string(outgoing_lookups) << ",\n";
-    file << "\"fanout\" : " <<
-        vector_to_string(fanout);
+    file << "\"outgoing_packets\" : " << vector_to_string(outgoing_packets) << ",\n";
+    file << "\"outgoing_lookups\" : " << vector_to_string(outgoing_lookups) << ",\n";
+    file << "\"outgoing_tables\" : " << outgoing_tables.to_string() << ", \n";
+    file << "\"fanout\" : " << vector_to_string(fanout);
     
     // cache hits
     if (cache_hits != nullptr)
@@ -231,6 +231,13 @@ Results cached_simulation(
             results.packets.at(p, i) += 1;
             results.lookups.at(p, i) += counts;
         }
+
+        // keeping track of the tables that requests communications
+        for (int i = 0; i < D; ++i)
+        {
+            if (lookups[i] != p)
+                ++results.outgoing_tables.at(p, i);
+        }
     }
 
     return results;
@@ -280,6 +287,13 @@ Results noncached_simulation(
         {
             results.packets.at(p, i) += 1;
             results.lookups.at(p, i) += counts;
+        }
+
+        // keeping track of the tables that requests communications
+        for (int i = 0; i < D; ++i)
+        {
+            if (lookups[i] != p)
+                ++results.outgoing_tables.at(p, i);
         }
     }
 

@@ -32,6 +32,7 @@ if __name__ == '__main__':
     lookups = np.array(sim['lookups'])
     outgoing_packets = np.array(sim['outgoing_packets'])
     outgoing_lookups = np.array(sim['outgoing_lookups'])
+    outgoing_tables = np.array(sim['outgoing_tables'])
     fanout = np.array(sim['fanout'])
     cache_hits = None
     df_footprint = None
@@ -131,8 +132,19 @@ if __name__ == '__main__':
     if args.save:
         plt.savefig(name + '_OL.png')
 
+    plt.figure(7)
+    plt.title('Outgoing tables matrix')
+    plt.imshow(outgoing_tables)
+    plt.colorbar()
+    plt.xticks(range(D), range(D), rotation=90)
+    plt.yticks(range(P), range(P))
+    plt.tight_layout()
+    if args.save:
+        plt.savefig(name + '_OT.png')
+    
+
     if cache_hits is not None:
-        plt.figure(7)
+        plt.figure(8)
         plt.title('Cache hit-rates')
         plt.imshow(cache_hits / cache_refs)
         plt.colorbar()
@@ -144,7 +156,7 @@ if __name__ == '__main__':
         if args.save:
             plt.savefig(name + '_C.png')
 
-        plt.figure(8)
+        plt.figure(9)
         plt.title('Cache hit-rates by table')
         plt.bar(range(D), cache_hits.sum(axis=0) / cache_refs.sum(axis=0))
         plt.xlabel('Table index')
@@ -154,7 +166,7 @@ if __name__ == '__main__':
         if args.save:
             plt.savefig(name + '_CT.png')
 
-        plt.figure(9)
+        plt.figure(10)
         plt.title('Cache hit-rates by processor')
         plt.bar(range(P), cache_hits.sum(axis=1) / cache_refs.sum(axis=1))
         plt.xlabel('Processor index')
