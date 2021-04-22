@@ -7,10 +7,13 @@ import json
 import sys
 import os
 
+reordering = [19, 0, 21, 9, 20, 10, 11, 22, 4, 1, 2, 23, 6, 3, 14, 13, 7, 17, 15, 24, 8, 25, 18, 12, 16, 5]
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--input-json','-i', type=str, required=True)
     parser.add_argument('--save','-s', action="store_true", default=False)
+    parser.add_argument('--reordering','-r', action="store_true", default=False)
     args = parser.parse_args()
 
     # checking input arguments
@@ -134,9 +137,15 @@ if __name__ == '__main__':
 
     plt.figure(7)
     plt.title('Outgoing tables matrix')
-    plt.imshow(outgoing_tables)
+    plt.xlabel('Table index')
+    plt.ylabel('Processor index')
+    if args.reordering:
+        plt.imshow(outgoing_tables[:, reordering])
+        plt.xticks(range(D), reordering, rotation=90)
+    else:
+        plt.xticks(range(D), range(D), rotation=90)
+        plt.imshow(outgoing_tables)
     plt.colorbar()
-    plt.xticks(range(D), range(D), rotation=90)
     plt.yticks(range(P), range(P))
     plt.tight_layout()
     if args.save:
@@ -146,11 +155,15 @@ if __name__ == '__main__':
     if cache_hits is not None:
         plt.figure(8)
         plt.title('Cache hit-rates')
-        plt.imshow(cache_hits / cache_refs)
+        if args.reordering:
+            plt.imshow((cache_hits / cache_refs)[:, reordering])
+            plt.xticks(range(D), reordering, rotation=90)
+        else:
+            plt.imshow(cache_hits / cache_refs)
+            plt.xticks(range(D), range(D), rotation=90)
         plt.colorbar()
         plt.xlabel('Table index')
         plt.ylabel('Processor index')
-        plt.xticks(range(D), range(D), rotation=90)
         plt.yticks(range(P), range(P))
         plt.tight_layout()
         if args.save:
@@ -158,10 +171,14 @@ if __name__ == '__main__':
 
         plt.figure(9)
         plt.title('Cache hit-rates by table')
-        plt.bar(range(D), cache_hits.sum(axis=0) / cache_refs.sum(axis=0))
+        if args.reordering:
+            plt.bar(range(D), (cache_hits.sum(axis=0) / cache_refs.sum(axis=0))[reordering])
+            plt.xticks(range(D), reordering, rotation=90)
+        else:
+            plt.bar(range(D), cache_hits.sum(axis=0) / cache_refs.sum(axis=0))
+            plt.xticks(range(D), range(D), rotation=90)
         plt.xlabel('Table index')
         plt.ylabel('Hit-rate')
-        plt.xticks(range(D), range(D), rotation=90)
         plt.tight_layout()
         if args.save:
             plt.savefig(name + '_CT.png')
@@ -177,13 +194,19 @@ if __name__ == '__main__':
             plt.savefig(name + '_CP.png')
 
     if df_footprint is not None:
-        fig, axs = plt.subplots(2,1, gridspec_kw={'height_ratios': [P, 1]})
-        df_footprint.plot.barh(stacked=True, legend=False, ax=axs[0])
+        fig, axs = plt.subplots(2, 1, gridspec_kw={'height_ratios': [P, 1]})
+        if args.reordering:
+            df_footprint[reordering].plot.barh(stacked=True, legend=False, ax=axs[0])
+        else:
+            df_footprint.plot.barh(stacked=True, legend=False, ax=axs[0])
         axs[0].set(ylabel='Processor index')
         axs[0].set(title="Tables' cache footprint")
         axs[0].set_xticks([])
         axs[0].set_xticklabels([])
-        pd.DataFrame([cache_sizes]).plot.barh(stacked=True, legend=False, ax=axs[1])
+        if args.reordering:
+            pd.DataFrame([cache_sizes])[reordering].plot.barh(stacked=True, legend=False, ax=axs[1])
+        else:
+            pd.DataFrame([cache_sizes]).plot.barh(stacked=True, legend=False, ax=axs[1])
         axs[1].set(xlabel="Reference footprint")
         axs[1].set_xticks([])
         axs[1].set_yticks([])
