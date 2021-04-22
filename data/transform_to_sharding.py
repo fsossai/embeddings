@@ -4,7 +4,13 @@ from time import time
 import sys
 import re
 
+columns = [33, 14, 35, 23, 34]
+offset = 14
 n_tables = 26
+P = 16
+
+input = sys.argv[1]
+output = sys.argv[2]
 
 def empty_list_init(d, r):
     for i in r:
@@ -14,7 +20,7 @@ def empty_list_init(d, r):
 def get_content(file, p):
     res = dict()
     # initialization
-    empty_list_init(res, range(0,n_tables))
+    empty_list_init(res, columns)
     
     with open(file, 'r') as f:
         f.readline() # skip
@@ -23,25 +29,19 @@ def get_content(file, p):
         while line:
             i = int(line)
             if i <= 0xff0:
-                table_id = i // 16 -14
+                table_id = i // P
                 emb_id = 0
             else:
                 n = hex(i)[2:]
                 n_head, n_body = n[:-8], n[-8:]
                 if len(n_head) == 0:
                     n_head = 'e'
-                table_id = int(n_head, 16) -14
-                emb_id = int(n_body, 16)
-            try:
-                res[table_id].append(f'{emb_id}:{p}')
-            except:
-                print('dio porco')
-                print(table_id, emb_id, n, line)
+                table_id = int(n_head, P)
+                emb_id = int(n_body, P)
+            res[table_id].append(f'{emb_id}:{p}')
             line = f.readline()
     return res
 
-input = sys.argv[1]
-output = sys.argv[2]
 
 all = glob(input + '_partition_*')
 
@@ -50,7 +50,7 @@ print(*all, sep='\n')
 print()
 
 S = dict()
-empty_list_init(S, range(0,n_tables))
+empty_list_init(S, columns)
 
 t = time()
 for file in all:
@@ -59,7 +59,7 @@ for file in all:
     res = get_content(file, p)
 
     # merging
-    for i in range(0,n_tables):
+    for i in columns:
         S[i] += res[i]
 
 t = time() - t
@@ -69,8 +69,11 @@ print('Processing time: ', t)
 print('Exporting ... ', end='', flush=True)
 t = time()
 with open(output, 'w') as f:
-    for i in range(0,n_tables):
-        f.write(','.join(S[i]) + '\n')
+    for i in range(0, n_tables):
+        if (i + offset) in S:
+            f.write(','.join(S[i + offset]) + '\n')
+        else:
+            f.write('0:-1\n')
 t = time() - t
 print(t)
     

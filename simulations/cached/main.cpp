@@ -67,12 +67,12 @@ int main(int argc, char **argv)
 	for (int P : Ps)
 	{
     	//LookupProtocol<Sharding::Random, uint32_t> protocol(P);
-    	LookupProtocol<Sharding::Custom, uint32_t> protocol(
-			args["lookup-table"].as<std::string>()
-		);
-		//LookupProtocol<Sharding::Hybrid, uint32_t> protocol(
-		//	P, args["lookup-table"].as<std::string>()
+    	//LookupProtocol<Sharding::Custom, uint32_t> protocol(
+		//	args["lookup-table"].as<std::string>()
 		//);
+		LookupProtocol<Sharding::Hybrid, uint32_t> protocol(
+			P, args["lookup-table"].as<std::string>()
+		);
 		//Cache<Policy::LFU, Mode::Private, uint32_t> cache(sizes, P, D);
 		Cache<Policy::LFU, Mode::Shared, uint32_t> cache(aggregate_size, P, D);
 
