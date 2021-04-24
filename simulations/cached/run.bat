@@ -6,4 +6,4 @@ sim.exe                     ^
  --n-processors 16          ^
  --min-size 100             ^
  --rel-size 0.01            ^
- --lookup-table s_hg_top5.txt
+ --lookup-table s_rr2.txt

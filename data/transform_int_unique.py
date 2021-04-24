@@ -7,8 +7,9 @@ input=sys.argv[1]
 output=sys.argv[2]
 
 nrows = int(1e6)
-# columns = range(14, 40)
-columns = [33, 14, 35, 23, 34]
+columns = range(14, 40)
+# columns = [33, 14, 35, 23, 34]
+offset = 14
 
 print('Reading ... ', end='', flush=True)
 t = time()
@@ -23,7 +24,7 @@ print(t)
 print('Transforming ... ', end='', flush=True)
 t = time()
 for col in data.columns:
-    data[col] = data[col].apply(lambda x: int(hex(col)+x, 16))
+    data[col] = data[col].apply(lambda x: int(hex(col-offset+1) + x.rjust(8, '0'), 16))
 t = time() - t
 print(t)
 
