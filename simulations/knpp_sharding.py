@@ -4,15 +4,18 @@ from time import time
 import heapq
 import sys
 
-def greedy(number_list, k=2):
-    heap = [(0, []) for i in range(k)]
+def greedy(number_list, k=2, initial_groups=None):
+    if initial_groups is None:
+        groups = [(0, []) for i in range(k)]
+    else:
+        groups = initial_groups
     for n in sorted(number_list, reverse=True, key=lambda x: x[1]):
-        cost, elements = heap[0]
+        cost, elements = groups[0]
         elements.append(n)
         new_group = (cost + n[1], elements)
-        heapq.heapreplace(heap, new_group)
-    heap.sort(key=lambda x: x[0])
-    return [y for x, y in heap]
+        heapq.heapreplace(groups, new_group)
+    groups.sort(key=lambda x: x[0])
+    return groups
 
 def get_index_and_id(number):
     h = hex(number)[2:]
@@ -33,12 +36,20 @@ print(t)
 
 print('Sharding ... ', end='', flush=True)
 t = time()
-T = [[] for _ in range(P)]
+# for col in data.columns:
+#     for p, content in enumerate(greedy(vc[col].iteritems(), P)):
+#         T[p] += content
+H = None
 for col in data.columns:
-    for p, content in enumerate(greedy(vc[col].iteritems(), P)):
-        T[p] += content
+    H = greedy(vc[col].iteritems(), P, H)
 t = time() - t
 print(t)
+sums = [x for x, _ in H]
+print('Sums:', *sums)
+T = [y for _, y in H]
+
+# debug
+# sorted(T[-1])
 
 # exporting
 print('Exporting ... ', end='', flush=True)
