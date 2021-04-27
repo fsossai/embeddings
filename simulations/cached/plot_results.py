@@ -13,12 +13,12 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--input-json','-i', type=str, required=True)
     parser.add_argument('--save','-s', action="store_true", default=False)
-    parser.add_argument('--which-plots','-p', type=str, default='RP,PS,OP')
+    parser.add_argument('--which-plots','-p', type=str, default='RP,OP,OL,PS')
     parser.add_argument('--reordering','-r', action="store_true", default=False)
     args = parser.parse_args()
 
     if args.which_plots.lower() == 'all':
-        args.which_plots = 'PM,LM,RP,LR,F,OP,PS,OT,C,CT,CP,FP'
+        args.which_plots = 'PM,LM,RP,LR,F,OP,OL,PS,OT,C,CT,CP,FP'
 
     # checking input arguments
     if not os.path.isfile(args.input_json):
@@ -38,6 +38,7 @@ if __name__ == '__main__':
     packets = np.array(sim['packets'])
     lookups = np.array(sim['lookups'])
     outgoing_packets = np.array(sim['outgoing_packets'])
+    outgoing_lookups = np.array(sim['outgoing_lookups'])
     outgoing_tables = np.array(sim['outgoing_tables'])
     packet_size = np.array(sim['packet_size'])
     fanout = np.array(sim['fanout'])
@@ -57,10 +58,12 @@ if __name__ == '__main__':
     avg = lambda x: (x * np.arange(len(x))).sum() / x.sum()
     avg_fanout = avg(fanout)
     avg_out_packets = avg(outgoing_packets)
+    avg_out_lookups = avg(outgoing_lookups)
     avg_packet_size = avg(packet_size)
     # checking consistency of averages
     assert avg_out_packets == packets.sum() / N, "avg_out_packets corrupted"
-    assert avg_packet_size == lookups.sum() / N, "avg_packet_size corrupted"
+    assert avg_out_lookups == lookups.sum() / N, "avg_out_lookups corrupted"
+    assert avg_packet_size == lookups.sum() / packets.sum(), "avg_packet_size corrupted"
 
     # calculating load imbalance
     dispersion = lambda x: x.std() / x.mean()
@@ -127,7 +130,7 @@ if __name__ == '__main__':
     if 'OP' in args.which_plots.split(','):
         plt.figure(5)
         plt.bar(range(P), outgoing_packets)
-        plt.title(f'Outgoing packets distribution, avg={avg_out_packets:.3}, total={packets.sum()}')
+        plt.title(f'Outgoing packets distribution, avg={avg_out_packets:.3}')
         plt.xlabel('Number of outgoing packets')
         plt.xticks(range(P), range(P))
         plt.ylabel('Count')
@@ -135,22 +138,22 @@ if __name__ == '__main__':
         if args.save:
             plt.savefig(name + '_OP.png')
 
-    if 'PS' in args.which_plots.split(','):
+    if 'OL' in args.which_plots.split(','):
         plt.figure(6)
-        plt.bar(range(D+1), packet_size)
-        plt.title(f'Packet size distribution, avg={avg_packet_size:.3}, total={lookups.sum()}')
-        plt.xlabel('Packet size')
+        plt.bar(range(D+1), outgoing_lookups)
+        plt.title(f'Outgoing lookups distribution, avg={avg_out_lookups:.3}')
+        plt.xlabel('Number of outgoing packets')
         plt.xticks(range(D+1), range(D+1), rotation=90)
         plt.ylabel('Count')
         plt.tight_layout()
         if args.save:
-            plt.savefig(name + '_PS.png')
+            plt.savefig(name + '_OL.png')
 
     if 'OT' in args.which_plots.split(','):
         plt.figure(7)
         plt.title('Outgoing tables matrix')
         plt.xlabel('Table index')
-        plt.ylabel('Processor index')
+        plt.ylabel('Processor')
         if args.reordering:
             plt.imshow(outgoing_tables[:, reordering])
             plt.xticks(range(D), reordering, rotation=90)
@@ -163,10 +166,20 @@ if __name__ == '__main__':
         if args.save:
             plt.savefig(name + '_OT.png')
     
+    if 'PS' in args.which_plots.split(','):
+        plt.figure(8)
+        plt.bar(range(1,D+1), packet_size[1:])
+        plt.title(f'Packet size distribution, avg={avg_packet_size:.3}')
+        plt.xlabel('Packet size')
+        plt.xticks(range(1,D+1), range(1,D+1), rotation=90)
+        plt.ylabel('Count')
+        plt.tight_layout()
+        if args.save:
+            plt.savefig(name + '_PS.png')
 
     if cache_hits is not None:
         if 'C' in args.which_plots.split(','):
-            plt.figure(8)
+            plt.figure(9)
             plt.title('Cache hit-rates')
             if args.reordering:
                 plt.imshow((cache_hits / cache_refs)[:, reordering])
@@ -183,7 +196,7 @@ if __name__ == '__main__':
                 plt.savefig(name + '_C.png')
 
         if 'CT' in args.which_plots.split(','):
-            plt.figure(9)
+            plt.figure(10)
             plt.title('Cache hit-rates by table')
             if args.reordering:
                 plt.bar(range(D), (cache_hits.sum(axis=0) / cache_refs.sum(axis=0))[reordering])
@@ -198,7 +211,7 @@ if __name__ == '__main__':
                 plt.savefig(name + '_CT.png')
 
         if 'CP' in args.which_plots.split(','):
-            plt.figure(10)
+            plt.figure(11)
             plt.title('Cache hit-rates by processor')
             plt.bar(range(P), cache_hits.sum(axis=1) / cache_refs.sum(axis=1))
             plt.xlabel('Processor index')

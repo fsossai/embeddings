@@ -23,6 +23,7 @@ public:
     Matrix<int> lookups;
     std::vector<int> fanout;
     std::vector<int> outgoing_packets;
+    std::vector<int> outgoing_lookups;
     std::vector<int> packet_size;
     Matrix<int> outgoing_tables;
     Matrix<int> *cache_hits = nullptr;
@@ -92,6 +93,7 @@ Results::Results(int P, int D, int N) :
     lookups(Matrix<int>(P,P)),
     fanout(std::vector<int>(P+1)),
     outgoing_packets(std::vector<int>(P)),
+    outgoing_lookups(std::vector<int>(D+1)),
     packet_size(std::vector<int>(D+1)),
     outgoing_tables(Matrix<int>(P, D)),
     P(P), D(D), N(N)
@@ -129,6 +131,7 @@ void Results::save(std::string output_directory)
     file << "\"packets\" : " << packets.to_string() << ",\n";
     file << "\"lookups\" : " << lookups.to_string() << ",\n";
     file << "\"outgoing_packets\" : " << vector_to_string(outgoing_packets) << ",\n";
+    file << "\"outgoing_lookups\" : " << vector_to_string(outgoing_lookups) << ",\n";
     file << "\"outgoing_tables\" : " << outgoing_tables.to_string() << ", \n";
     file << "\"packet_size\" : " << vector_to_string(packet_size) << ",\n";
     file << "\"fanout\" : " << vector_to_string(fanout);
@@ -221,13 +224,14 @@ Results cached_simulation(
         int local_lookups = lcounts[p];
         lcounts.erase(p);
         ++results.outgoing_packets[lcounts.size()];
-        ++results.packet_size[D - local_lookups];
+        ++results.outgoing_lookups[D - local_lookups];
 
         // accounting for all sent packets
         for (const auto& [i, counts] : lcounts)
         {
             results.packets.at(p, i) += 1;
             results.lookups.at(p, i) += counts;
+            ++results.packet_size[counts];
         }
 
         // keeping track of the tables that requests communications
@@ -277,13 +281,14 @@ Results noncached_simulation(
         int local_lookups = lcounts[p];
         lcounts.erase(p);
         ++results.outgoing_packets[lcounts.size()];
-        ++results.packet_size[D - local_lookups];
+        ++results.outgoing_lookups[D - local_lookups];
 
         // accounting for all sent packets
         for (const auto& [i, counts] : lcounts)
         {
             results.packets.at(p, i) += 1;
             results.lookups.at(p, i) += counts;
+            ++results.packet_size[counts];
         }
 
         // keeping track of the tables that requests communications
