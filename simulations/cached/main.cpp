@@ -81,19 +81,19 @@ int main(int argc, char **argv)
 		std::cout << "Cache: " << cache.policy << " " << cache.mode << " ... ";
 
 		//Results results = noncached_simulation(queries, P, protocol);
+		///*
 		Results results = cached_simulation(queries, P, protocol, cache);
-		/*
 		results.cache_sizes = &sizes;
 		results.cache_min_size = min_size;
 		results.cache_size_rel = size_relative;
 		results.cache_policy = cache.policy;
     	results.cache_aggregate_size = aggregate_size;
     	results.cache_mode = cache.mode;
-		*/
-    	results.sharding_mode = protocol.name;
-		results.sharding_file = args["lookup-table"].as<std::string>();
 		auto footprint = cache.get_tables_footprint();
 		results.cache_footprint = &footprint;
+		//*/
+    	results.sharding_mode = protocol.name;
+		results.sharding_file = args["lookup-table"].as<std::string>();
 		results.save("results");
 		std::cout << chronometer.lap() << "s" << std::endl;
 	}
