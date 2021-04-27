@@ -61,6 +61,7 @@ if __name__ == '__main__':
     cache_sizes = dict()
     df_footprint = dict()
     cache_footprint = dict()
+    name = dict()
 
     for file in input_files:
         packets[file] = np.array(sim[file]['packets'])
@@ -71,6 +72,10 @@ if __name__ == '__main__':
         fanout[file] = np.array(sim[file]['fanout'])
         cache_hits[file] = None
         df_footprint[file] = None
+        if sim[file]['sharding_file'] == '':
+            name[file] = sim[file]['sharding_mode']
+        else:
+            name[file] = sim[file]['sharding_file']
         if 'cache_hits' in sim[file]:
             cache_hits[file] = np.array(sim[file]['cache_hits'])
             cache_refs[file] = np.array(sim[file]['cache_refs'])
@@ -110,9 +115,10 @@ if __name__ == '__main__':
             vmax = max(vmax, packets[file].max())
             im = axs[i].imshow(packets[file], vmin=0, vmax=vmax)
             axs[i].set_xticks(range(P))
-            axs[i].set_xticklabels(range(P))
+            axs[i].set_xticklabels(range(P), rotation=90)
             axs[i].set_yticks(range(P))
             axs[i].set_yticklabels(range(P))
+            axs[i].set(title=name[file])
         fig.colorbar(im, cax=axs[-1])
         fig.tight_layout()
         if args.save:
@@ -130,6 +136,7 @@ if __name__ == '__main__':
             axs[i].set_xticklabels(range(P))
             axs[i].set_yticks(range(P))
             axs[i].set_yticklabels(range(P))
+            axs[i].set(title=name[file])
         fig.colorbar(im, cax=axs[-1])
         fig.tight_layout()
         if args.save:
@@ -146,6 +153,7 @@ if __name__ == '__main__':
             axs[i].set_xticklabels(range(P))
             axs[i].set_ylim(0, top_lim)
             axs[i].set(xlabel='Processor index')
+            axs[i].set(title=name[file])
         axs[0].set(ylabel='Number of received packets')
         for ax in axs[1:]:
             ax.set_yticks([])
@@ -166,6 +174,7 @@ if __name__ == '__main__':
             axs[i].set_xticklabels(range(P))
             axs[i].set_ylim(0, top_lim)
             axs[i].set(xlabel='Processor index')
+            axs[i].set(title=name[file])
         axs[0].set(ylabel='Number of lookup requests')
         for ax in axs[1:]:
             ax.set_yticks([])
@@ -187,6 +196,7 @@ if __name__ == '__main__':
             axs[i].set_xticklabels(range(P+1), rotation=90)
             axs[i].set_ylim(0, top_lim)
             axs[i].set(xlabel='Fanout')
+            axs[i].set(title=name[file])
         axs[0].set(ylabel='Count')
         for ax in axs[1:]:
             ax.set_yticks([])
@@ -208,6 +218,7 @@ if __name__ == '__main__':
             axs[i].set_xticklabels(range(P+1), rotation=90)
             axs[i].set_ylim(0, top_lim)
             axs[i].set(xlabel='Number of outgoing packets')
+            axs[i].set(title=name[file])
         axs[0].set(ylabel='Count')
         for ax in axs[1:]:
             ax.set_yticks([])
@@ -228,6 +239,7 @@ if __name__ == '__main__':
             axs[i].set_xticklabels(range(D+1), rotation=90)
             axs[i].set_ylim(0, top_lim)
             axs[i].set(xlabel='Number of outgoing lookups')
+            axs[i].set(title=name[file])
         axs[0].set(ylabel='Count')
         for ax in axs[1:]:
             ax.set_yticks([])
@@ -256,6 +268,7 @@ if __name__ == '__main__':
             axs[i].set_yticks(range(P))
             axs[i].set_yticklabels(range(P))
             axs[i].set(xlabel='Table index')
+            axs[i].set(title=name[file])
         axs[0].set(ylabel='Processor index')
         fig.colorbar(im, cax=axs[-1])
         fig.tight_layout()
@@ -282,6 +295,7 @@ if __name__ == '__main__':
                 axs[i].set_yticks(range(P))
                 axs[i].set_yticklabels(range(P))
                 axs[i].set(xlabel='Table index')
+                axs[i].set(title=name[file])
             axs[0].set(ylabel='Processor index')
             fig.colorbar(im, cax=axs[-1])
             fig.tight_layout()
@@ -299,6 +313,7 @@ if __name__ == '__main__':
                 axs[i].set_xticklabels(range(D+1), rotation=90)
                 axs[i].set_ylim(0, top_lim)
                 axs[i].set(xlabel='Table index')
+                axs[i].set(title=name[file])
             axs[0].set(ylabel='Hit-rates')
             for ax in axs[1:]:
                 ax.set_yticks([])
@@ -312,4 +327,4 @@ if __name__ == '__main__':
         plt.show()
 
 # example
-# python _comparer.py -r -p OP,OL,RP,LM -i results\sim_20210422-093501.json,results\sim_20210422-093926.json,results\sim_20210424-114829.json,results\sim_20210425-104550.json
+# python comparer.py -r -p OP,OL,RP,LM -i results\sim_20210422-093501.json,results\sim_20210422-093926.json,results\sim_20210424-114829.json,results\sim_20210425-104550.json

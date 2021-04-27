@@ -35,7 +35,8 @@ public:
     std::string cache_policy = "";
     std::string cache_mode = "";
     std::string name = "";
-    std::string sharding = "";
+    std::string sharding_mode = "";
+    std::string sharding_file = "";
 
     Results(int P, int D, int N);
 
@@ -123,7 +124,8 @@ void Results::save(std::string output_directory)
     file << "\"queries\" : " << N << ",\n";
     file << "\"cache_policy\" : " << '\"' << cache_policy << "\",\n";
     file << "\"cache_mode\" : " << '\"' << cache_mode << "\",\n";
-    file << "\"sharding\" : " << '\"' << sharding << "\",\n";
+    file << "\"sharding_mode\" : " << '\"' << sharding_mode << "\",\n";
+    file << "\"sharding_file\" : " << '\"' << sharding_file << "\",\n";
     file << "\"packets\" : " << packets.to_string() << ",\n";
     file << "\"lookups\" : " << lookups.to_string() << ",\n";
     file << "\"outgoing_packets\" : " << vector_to_string(outgoing_packets) << ",\n";
@@ -189,10 +191,6 @@ Results cached_simulation(
     results.cache_hits = &cache.hits;
     results.cache_refs = &cache.refs;
     results.cache_sizes = &cache.sizes;
-    results.cache_policy = cache.policy;
-    results.cache_aggregate_size = cache.aggregate_size;
-    results.cache_mode = cache.mode;
-    results.sharding = protocol.name;
 
     std::vector<int> lookups(D);
 
@@ -255,7 +253,6 @@ Results noncached_simulation(
     const int D = queries[0].size();
 
     Results results(P, D, N);
-    results.sharding = protocol.name;
 
     std::vector<int> lookups(D);
 

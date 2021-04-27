@@ -67,12 +67,12 @@ int main(int argc, char **argv)
 	for (int P : Ps)
 	{
     	//LookupProtocol<Sharding::Random, uint32_t> protocol(P);
-    	//LookupProtocol<Sharding::Custom, uint32_t> protocol(
-		//	args["lookup-table"].as<std::string>()
-		//);
-		LookupProtocol<Sharding::Hybrid, uint32_t> protocol(
-			P, args["lookup-table"].as<std::string>()
+    	LookupProtocol<Sharding::Custom, uint32_t> protocol(
+			args["lookup-table"].as<std::string>()
 		);
+		//LookupProtocol<Sharding::Hybrid, uint32_t> protocol(
+		//	P, args["lookup-table"].as<std::string>()
+		//);
 		//Cache<Policy::LFU, Mode::Private, uint32_t> cache(sizes, P, D);
 		Cache<Policy::LFU, Mode::Shared, uint32_t> cache(aggregate_size, P, D);
 
@@ -82,10 +82,16 @@ int main(int argc, char **argv)
 
 		//Results results = noncached_simulation(queries, P, protocol);
 		Results results = cached_simulation(queries, P, protocol, cache);
-		results.sharding += ", " + args["lookup-table"].as<std::string>();
+		/*
 		results.cache_sizes = &sizes;
 		results.cache_min_size = min_size;
 		results.cache_size_rel = size_relative;
+		results.cache_policy = cache.policy;
+    	results.cache_aggregate_size = aggregate_size;
+    	results.cache_mode = cache.mode;
+		*/
+    	results.sharding_mode = protocol.name;
+		results.sharding_file = args["lookup-table"].as<std::string>();
 		auto footprint = cache.get_tables_footprint();
 		results.cache_footprint = &footprint;
 		results.save("results");
