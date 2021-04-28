@@ -59,11 +59,11 @@ if __name__ == '__main__':
     avg_fanout = avg(fanout)
     avg_out_packets = avg(outgoing_packets)
     avg_out_lookups = avg(outgoing_lookups)
-    avg_packet_size = avg(packet_size)
+    avg_packet_size = np.array([avg(packet_size[i, :]) for i in range(P)])
     # checking consistency of averages
     assert avg_out_packets == packets.sum() / N, "avg_out_packets corrupted"
     assert avg_out_lookups == lookups.sum() / N, "avg_out_lookups corrupted"
-    assert avg_packet_size == lookups.sum() / packets.sum(), "avg_packet_size corrupted"
+    assert avg(packet_size.sum(axis=0)) == lookups.sum() / packets.sum(), "avg_packet_size corrupted"
 
     # calculating load imbalance
     dispersion = lambda x: x.std() / x.mean()
@@ -168,11 +168,19 @@ if __name__ == '__main__':
     
     if 'PS' in args.which_plots.split(','):
         plt.figure(8)
-        plt.bar(range(1,D+1), packet_size[1:])
-        plt.title(f'Packet size distribution, avg={avg_packet_size:.3}')
+        plt.bar(range(1,D+1), packet_size.sum(axis=0)[1:])
+        plt.title(f'Packet size distribution, avg={avg(packet_size.sum(axis=0)):.3}')
         plt.xlabel('Packet size')
         plt.xticks(range(1,D+1), range(1,D+1), rotation=90)
         plt.ylabel('Count')
+        '''
+        plt.figure(8)
+        plt.bar(range(P), avg_packet_size)
+        plt.title(f'Average packet size, total avg={avg(packet_size.sum(axis=0)):.3}')
+        plt.xlabel('Processor')
+        plt.xticks(range(P), range(P), rotation=0)
+        plt.ylabel('Packet size')
+        '''
         plt.tight_layout()
         if args.save:
             plt.savefig(name + '_PS.png')

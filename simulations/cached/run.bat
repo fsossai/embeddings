@@ -6,4 +6,5 @@ sim.exe                     ^
  --n-processors 16          ^
  --min-size 100             ^
  --rel-size 0.01            ^
- --lookup-table s_alpha1_100.txt
+ --lookup-table s_rr.txt    ^
+ --sharding-name "A B"

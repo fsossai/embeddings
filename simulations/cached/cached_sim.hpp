@@ -24,7 +24,7 @@ public:
     std::vector<int> fanout;
     std::vector<int> outgoing_packets;
     std::vector<int> outgoing_lookups;
-    std::vector<int> packet_size;
+    Matrix<int> packet_size;
     Matrix<int> outgoing_tables;
     Matrix<int> *cache_hits = nullptr;
     Matrix<int> *cache_refs = nullptr;
@@ -38,6 +38,7 @@ public:
     std::string name = "";
     std::string sharding_mode = "";
     std::string sharding_file = "";
+    std::string sharding_name = "";
 
     Results(int P, int D, int N);
 
@@ -94,7 +95,7 @@ Results::Results(int P, int D, int N) :
     fanout(std::vector<int>(P+1)),
     outgoing_packets(std::vector<int>(P)),
     outgoing_lookups(std::vector<int>(D+1)),
-    packet_size(std::vector<int>(D+1)),
+    packet_size(Matrix<int>(P, D+1)),
     outgoing_tables(Matrix<int>(P, D)),
     P(P), D(D), N(N)
 { }
@@ -128,12 +129,13 @@ void Results::save(std::string output_directory)
     file << "\"cache_mode\" : " << '\"' << cache_mode << "\",\n";
     file << "\"sharding_mode\" : " << '\"' << sharding_mode << "\",\n";
     file << "\"sharding_file\" : " << '\"' << sharding_file << "\",\n";
+    file << "\"sharding_name\" : " << '\"' << sharding_name << "\",\n";
     file << "\"packets\" : " << packets.to_string() << ",\n";
     file << "\"lookups\" : " << lookups.to_string() << ",\n";
     file << "\"outgoing_packets\" : " << vector_to_string(outgoing_packets) << ",\n";
     file << "\"outgoing_lookups\" : " << vector_to_string(outgoing_lookups) << ",\n";
     file << "\"outgoing_tables\" : " << outgoing_tables.to_string() << ", \n";
-    file << "\"packet_size\" : " << vector_to_string(packet_size) << ",\n";
+    file << "\"packet_size\" : " << packet_size.to_string() << ",\n";
     file << "\"fanout\" : " << vector_to_string(fanout);
     
     // cache hits
@@ -231,7 +233,7 @@ Results cached_simulation(
         {
             results.packets.at(p, i) += 1;
             results.lookups.at(p, i) += counts;
-            ++results.packet_size[counts];
+            results.packet_size.at(p, counts) += 1;
         }
 
         // keeping track of the tables that requests communications
@@ -288,7 +290,7 @@ Results noncached_simulation(
         {
             results.packets.at(p, i) += 1;
             results.lookups.at(p, i) += counts;
-            ++results.packet_size[counts];
+            results.packet_size.at(p, counts) += 1;
         }
 
         // keeping track of the tables that requests communications

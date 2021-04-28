@@ -17,6 +17,7 @@ int main(int argc, char **argv)
 		("r,rel-size","Fraction of cardinality to be used as cache", cxxopts::value<float>()->default_value("0.01"))
 		("p,n-processors", "List of processors to be used", cxxopts::value<std::vector<int>>())
 		("l,lookup-table", "Specify a precompiled lookup table", cxxopts::value<std::string>())
+		("n,sharding-name", "Technical name of the sharding strategy", cxxopts::value<std::string>())
 	;
 	
 	auto args = options.parse(argc, argv);
@@ -94,6 +95,7 @@ int main(int argc, char **argv)
 		//*/
     	results.sharding_mode = protocol.name;
 		results.sharding_file = args["lookup-table"].as<std::string>();
+		results.sharding_name = args["sharding-name"].as<std::string>();
 		results.save("results");
 		std::cout << chronometer.lap() << "s" << std::endl;
 	}
