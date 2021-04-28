@@ -95,7 +95,8 @@ int main(int argc, char **argv)
 		//*/
     	results.sharding_mode = protocol.name;
 		results.sharding_file = args["lookup-table"].as<std::string>();
-		results.sharding_name = args["sharding-name"].as<std::string>();
+		if (args.count("sharding-name"))
+			results.sharding_name = args["sharding-name"].as<std::string>();
 		results.save("results");
 		std::cout << chronometer.lap() << "s" << std::endl;
 	}

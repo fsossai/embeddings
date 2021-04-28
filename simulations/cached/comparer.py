@@ -1,6 +1,7 @@
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.gridspec import GridSpec
 import matplotlib.pyplot as plt
+from glob import glob
 import pandas as pd
 import numpy as np
 import argparse
@@ -24,12 +25,16 @@ if __name__ == '__main__':
         args.which_plots = 'PM,LM,RP,LR,F,OP,OL,PS,OT,C,CT,CP,FP'
 
     # checking input arguments
-    input_files = args.input_json.split(',')
+    input_files = []
+    for file in args.input_json.split(','):
+        match = glob(file)
+        if len(match) == 0:
+            print(f'WARNING: \"{file}\" file not found')
+        else:
+            input_files += match
     n_files = len(input_files)
-    for file in input_files:
-        if not os.path.isfile(file):
-            print(f'ERROR: \"{file}\" file not found')
-            sys.exit(-1)
+    if n_files == 0:
+        sys.exit()
 
     # loading JSON simulation data
     sim = dict()
@@ -78,7 +83,7 @@ if __name__ == '__main__':
         df_footprint[file] = None
         if sim[file]['sharding_file'] == '':
             name[file] = sim[file]['sharding_mode']
-        elif 'sharding_name' in sim[file]:
+        elif 'sharding_name' in sim[file] and len(sim[file]['sharding_name']) > 0:
             name[file] = sim[file]['sharding_name']
         else:
             name[file] = sim[file]['sharding_file']
@@ -98,12 +103,10 @@ if __name__ == '__main__':
     avg_fanout = dict()
     avg_out_packets = dict()
     avg_out_lookups = dict()
-    avg_packet_size = dict()
     for file in input_files:
         avg_fanout[file] = avg(fanout[file])
         avg_out_packets[file] = avg(outgoing_packets[file])
         avg_out_lookups[file] = avg(outgoing_lookups[file])
-        avg_packet_size[file] = avg(packet_size[file])
 
     # calculating load imbalance
     dispersion = lambda x: x.std() / x.mean()
@@ -115,6 +118,9 @@ if __name__ == '__main__':
     
 
     # plotting results
+    D_xstep = 4
+    P_xstep = 2
+    top_lim_border = 1.05
     
     if 'PM' in args.which_plots.split(','):
         fig, axs = plt.subplots(ncols=n_files+1,
@@ -153,11 +159,11 @@ if __name__ == '__main__':
     if 'RP' in args.which_plots.split(','):
         fig, axs = plt.subplots(ncols=n_files, squeeze=True)
         fig.suptitle(f'Received packets')
-        top_lim = max([packets[file].sum(axis=0).max() for file in input_files])
+        top_lim = max([packets[file].sum(axis=0).max() for file in input_files]) * top_lim_border
         for i, file in enumerate(input_files):
             axs[i].bar(range(P), packets[file].sum(axis=0))
-            axs[i].set_xticks(range(P))
-            axs[i].set_xticklabels(range(P), rotation=90)
+            axs[i].set_xticks(range(0,P,P_xstep))
+            axs[i].set_xticklabels(range(0,P,P_xstep), rotation=90)
             axs[i].set_ylim(0, top_lim)
             axs[i].set(xlabel='Processor')
             axs[i].set(title=f'{name[file]}\nimbalance={packets_imb[file]:.3}')
@@ -173,11 +179,11 @@ if __name__ == '__main__':
     if 'LR' in args.which_plots.split(','):
         fig, axs = plt.subplots(ncols=n_files, squeeze=True)
         fig.suptitle(f'Lookup requests')
-        top_lim = max([lookups[file].sum(axis=0).max() for file in input_files])
+        top_lim = max([lookups[file].sum(axis=0).max() for file in input_files]) * top_lim_border
         for i, file in enumerate(input_files):
             axs[i].bar(range(P), lookups[file].sum(axis=0))
-            axs[i].set_xticks(range(P))
-            axs[i].set_xticklabels(range(P), rotation=90)
+            axs[i].set_xticks(range(0,P,P_xstep))
+            axs[i].set_xticklabels(range(0,P,P_xstep), rotation=90)
             axs[i].set_ylim(0, top_lim)
             axs[i].set(xlabel='Processor')
             axs[i].set(title=f'{name[file]}\nimbalance={lookups_imb[file]:.3}')
@@ -194,11 +200,11 @@ if __name__ == '__main__':
     if 'F' in args.which_plots.split(','):
         fig, axs = plt.subplots(ncols=n_files, squeeze=True)
         fig.suptitle(f'Fanout distribution')
-        top_lim = max([fanout[file].max() for file in input_files])
+        top_lim = max([fanout[file].max() for file in input_files]) * top_lim_border
         for i, file in enumerate(input_files):
             axs[i].bar(range(1,P+1), fanout[file][1:])
-            axs[i].set_xticks(range(1,P+1))
-            axs[i].set_xticklabels(range(1,P+1), rotation=90)
+            axs[i].set_xticks(range(1,P+1,P_xstep))
+            axs[i].set_xticklabels(range(1,P+1,P_xstep), rotation=90)
             axs[i].set_ylim(0, top_lim)
             axs[i].set(xlabel='Fanout')
             axs[i].set(title=f'{name[file]}\navg={avg_fanout[file]:.3}')
@@ -215,11 +221,11 @@ if __name__ == '__main__':
     if 'OP' in args.which_plots.split(','):
         fig, axs = plt.subplots(ncols=n_files, squeeze=True)
         fig.suptitle(f'Outgoing packets distribution')
-        top_lim = max([outgoing_packets[file].max() for file in input_files])
+        top_lim = max([outgoing_packets[file].max() for file in input_files]) * top_lim_border
         for i, file in enumerate(input_files):
             axs[i].bar(range(P), outgoing_packets[file])
-            axs[i].set_xticks(range(P))
-            axs[i].set_xticklabels(range(P), rotation=90)
+            axs[i].set_xticks(range(0,P,P_xstep))
+            axs[i].set_xticklabels(range(0,P,P_xstep), rotation=90)
             axs[i].set_ylim(0, top_lim)
             axs[i].set(xlabel='Packets')
             axs[i].set(title=f'{name[file]}\navg={avg_out_packets[file]:.3}')
@@ -235,11 +241,11 @@ if __name__ == '__main__':
     if 'OL' in args.which_plots.split(','):
         fig, axs = plt.subplots(ncols=n_files, squeeze=True)
         fig.suptitle(f'Outgoing lookups distribution')
-        top_lim = max([outgoing_lookups[file].max() for file in input_files])
+        top_lim = max([outgoing_lookups[file].max() for file in input_files]) * top_lim_border
         for i, file in enumerate(input_files):
             axs[i].bar(range(D+1), outgoing_lookups[file])
-            axs[i].set_xticks(range(0,D+1,4))
-            axs[i].set_xticklabels(range(0,D+1,4), rotation=90)
+            axs[i].set_xticks(range(0,D+1,D_xstep))
+            axs[i].set_xticklabels(range(0,D+1,D_xstep), rotation=90)
             axs[i].set_ylim(0, top_lim)
             axs[i].set(xlabel='Lookups')
             axs[i].set(title=f'{name[file]}\navg={avg_out_lookups[file]:.3}')
@@ -259,13 +265,13 @@ if __name__ == '__main__':
         vmax = max([outgoing_tables[file].max() for file in input_files])
         for i, file in enumerate(input_files):
             if args.reordering:
+                axs[i].set_xticks(range(0,D,1))
                 im = axs[i].imshow(outgoing_tables[file][:, reordering], vmin=0, vmax=vmax)
-                axs[i].set_xticks(range(D))
                 axs[i].set_xticklabels(reordering, rotation=90)
             else:
                 im = axs[i].imshow(outgoing_tables[file], vmin=0, vmax=vmax)
-                axs[i].set_xticks(range(D))
-                axs[i].set_xticklabels(range(D), rotation=90)
+                axs[i].set_xticks(range(0,D,D_xstep))
+                axs[i].set_xticklabels(range(0,D,D_xstep), rotation=90)
             axs[i].set_yticks(range(P))
             axs[i].set_yticklabels(range(P))
             axs[i].set(xlabel='Table index')
@@ -279,16 +285,15 @@ if __name__ == '__main__':
     if 'PS' in args.which_plots.split(','):
         fig, axs = plt.subplots(ncols=n_files, squeeze=True)
         fig.suptitle(f'Packet size distribution')
-        top_lim = max([packet_size[file].max() for file in input_files])
+        top_lim = max([packet_size[file].sum(axis=0).max() for file in input_files]) * top_lim_border
         for i, file in enumerate(input_files):
-            axs[i].bar(range(1,D+1), packet_size[file][1:])
-            axs[i].set_xticks(range(1,D+1))
-            axs[i].set_xticklabels(range(1,D+1), rotation=90)
+            axs[i].bar(range(1,D+1), packet_size[file].sum(axis=0)[1:])
+            axs[i].set_xticks(range(1,D+1,D_xstep))
+            axs[i].set_xticklabels(range(1,D+1,D_xstep), rotation=90)
             axs[i].set_ylim(0, top_lim)
             axs[i].set(xlabel='Packet size')
             axs[i].set(title=f'{name[file]}\n' +
-                f'avg={avg_packet_size[file]:.3}')
-            #   f'total={packets[file].sum()}')
+                f'avg={avg(packet_size[file].sum(axis=0)):.3}')
         axs[0].set(ylabel='Count')
         for ax in axs[1:]:
             ax.set_yticks([])
@@ -308,12 +313,12 @@ if __name__ == '__main__':
             for i, file in enumerate(input_files):
                 if args.reordering:
                     im = axs[i].imshow((cache_hits[file] / cache_refs[file])[:, reordering], vmin=0, vmax=vmax)
-                    axs[i].set_xticks(range(D))
+                    axs[i].set_xticks(range(0,D,1))
                     axs[i].set_xticklabels(reordering, rotation=90)
                 else:
                     im = axs[i].imshow((cache_hits[file] / cache_refs[file]), vmin=0, vmax=vmax)
-                    axs[i].set_xticks(range(D))
-                    axs[i].set_xticklabels(range(D), rotation=90)
+                    axs[i].set_xticks(range(0,D,D_xstep))
+                    axs[i].set_xticklabels(range(0,D,D_xstep), rotation=90)
                 axs[i].set_yticks(range(P))
                 axs[i].set_yticklabels(range(P))
                 axs[i].set(xlabel='Table index')
@@ -330,9 +335,9 @@ if __name__ == '__main__':
             vmax = max([(cache_hits[file].sum(axis=0) / cache_refs[file].sum(axis=0)).max() for file in input_files])
             for i, file in enumerate(input_files):
                 axs[i].bar(range(D), (cache_hits[file].sum(axis=0) / cache_refs[file].sum(axis=0))[reordering])
-                top_lim = max(top_lim, axs[i].get_ylim()[1])
-                axs[i].set_xticks(range(D+1))
-                axs[i].set_xticklabels(range(D+1), rotation=90)
+                top_lim = max(top_lim, axs[i].get_ylim()[1]) * top_lim_border
+                axs[i].set_xticks(range(0,D+1,D_xstep))
+                axs[i].set_xticklabels(range(0,D+1,D_xstep), rotation=90)
                 axs[i].set_ylim(0, top_lim)
                 axs[i].set(xlabel='Table index')
                 axs[i].set(title=name[file])

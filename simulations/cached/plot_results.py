@@ -142,7 +142,7 @@ if __name__ == '__main__':
         plt.figure(6)
         plt.bar(range(D+1), outgoing_lookups)
         plt.title(f'Outgoing lookups distribution, avg={avg_out_lookups:.3}')
-        plt.xlabel('Number of outgoing packets')
+        plt.xlabel('Number of outgoing lookups')
         plt.xticks(range(D+1), range(D+1), rotation=90)
         plt.ylabel('Count')
         plt.tight_layout()
