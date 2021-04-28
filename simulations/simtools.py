@@ -52,7 +52,8 @@ def available_strategies():
         'random',
         'greedy',
         'roundrobin1',
-        'roundrobin2'
+        'roundrobin2',
+        'roundrobin3'
     ]
 
 
@@ -191,6 +192,8 @@ class MemorySystem:
             self.shard_roundrobin1()
         elif configuration['strategy'] == 'roundrobin2':
             self.shard_roundrobin2()
+        elif configuration['strategy'] == 'roundrobin3':
+            self.shard_roundrobin3()
         else:
             raise Exception('strategy not implemented')
 
@@ -239,6 +242,17 @@ class MemorySystem:
                 next(drm_gen)
                 for i in range(self.tables[t].size)
             ]
+    
+    # tables row-major / devices row-major
+    def shard_roundrobin3(self):
+        self.check_sharding_requirements()
+        size_single = self.min_size_single()
+
+        # sharding
+        drm_gen = self.device_rm_gen(size_single)
+        trm_gen = self.tables_rm_gen()
+        for t, i in trm_gen:
+            self.tables[t][i] = next(drm_gen)
 
     def min_size_single(self):
         n_ids = sum(self.tables[t].size for t in self.tables)

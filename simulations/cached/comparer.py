@@ -159,7 +159,7 @@ if __name__ == '__main__':
             axs[i].set_xticks(range(P))
             axs[i].set_xticklabels(range(P), rotation=90)
             axs[i].set_ylim(0, top_lim)
-            axs[i].set(xlabel='Processor index')
+            axs[i].set(xlabel='Processor')
             axs[i].set(title=f'{name[file]}\nimbalance={packets_imb[file]:.3}')
         axs[0].set(ylabel='Number of received packets')
         for ax in axs[1:]:
@@ -179,7 +179,7 @@ if __name__ == '__main__':
             axs[i].set_xticks(range(P))
             axs[i].set_xticklabels(range(P), rotation=90)
             axs[i].set_ylim(0, top_lim)
-            axs[i].set(xlabel='Processor index')
+            axs[i].set(xlabel='Processor')
             axs[i].set(title=f'{name[file]}\nimbalance={lookups_imb[file]:.3}')
         axs[0].set(ylabel='Number of lookup requests')
         for ax in axs[1:]:
@@ -286,7 +286,9 @@ if __name__ == '__main__':
             axs[i].set_xticklabels(range(1,D+1), rotation=90)
             axs[i].set_ylim(0, top_lim)
             axs[i].set(xlabel='Packet size')
-            axs[i].set(title=f'{name[file]}\navg={avg_packet_size[file]:.3}')
+            axs[i].set(title=f'{name[file]}\n' +
+                f'avg={avg_packet_size[file]:.3}, ' +
+                f'total={packets[file].sum()}')
         axs[0].set(ylabel='Count')
         for ax in axs[1:]:
             ax.set_yticks([])
