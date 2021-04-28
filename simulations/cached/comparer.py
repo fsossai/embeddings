@@ -221,7 +221,7 @@ if __name__ == '__main__':
             axs[i].set_xticks(range(P))
             axs[i].set_xticklabels(range(P), rotation=90)
             axs[i].set_ylim(0, top_lim)
-            axs[i].set(xlabel='Number of outgoing packets')
+            axs[i].set(xlabel='Packets')
             axs[i].set(title=f'{name[file]}\navg={avg_out_packets[file]:.3}')
         axs[0].set(ylabel='Count')
         for ax in axs[1:]:
@@ -238,10 +238,10 @@ if __name__ == '__main__':
         top_lim = max([outgoing_lookups[file].max() for file in input_files])
         for i, file in enumerate(input_files):
             axs[i].bar(range(D+1), outgoing_lookups[file])
-            axs[i].set_xticks(range(D+1))
-            axs[i].set_xticklabels(range(D+1), rotation=90)
+            axs[i].set_xticks(range(0,D+1,4))
+            axs[i].set_xticklabels(range(0,D+1,4), rotation=90)
             axs[i].set_ylim(0, top_lim)
-            axs[i].set(xlabel='Number of outgoing lookups')
+            axs[i].set(xlabel='Lookups')
             axs[i].set(title=f'{name[file]}\navg={avg_out_lookups[file]:.3}')
         axs[0].set(ylabel='Count')
         for ax in axs[1:]:
@@ -287,8 +287,8 @@ if __name__ == '__main__':
             axs[i].set_ylim(0, top_lim)
             axs[i].set(xlabel='Packet size')
             axs[i].set(title=f'{name[file]}\n' +
-                f'avg={avg_packet_size[file]:.3}, ' +
-                f'total={packets[file].sum()}')
+                f'avg={avg_packet_size[file]:.3}')
+            #   f'total={packets[file].sum()}')
         axs[0].set(ylabel='Count')
         for ax in axs[1:]:
             ax.set_yticks([])
